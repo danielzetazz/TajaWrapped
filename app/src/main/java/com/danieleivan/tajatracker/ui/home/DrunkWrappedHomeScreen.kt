@@ -28,12 +28,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.util.Locale
 
-private enum class DrinkFormat(val label: String, val asksMixer: Boolean) {
-    COPA("Copa", true),
-    CHUPITO("Chupito", false),
-    CERVEZA("Cerveza", false),
-    VINO("Vino", false),
-    GARRAFA("Garrafa", true)
+private enum class DrinkFormat(
+    val label: String,
+    val requiresAlcoholBase: Boolean,
+    val requiresMixer: Boolean,
+    val requiresIce: Boolean
+) {
+    COPA("Copa", true, true, true),
+    CHUPITO("Chupito", true, false, false),
+    CERVEZA("Cerveza", false, false, false),
+    VINO("Vino", false, false, false),
+    GARRAFA("Garrafa", true, true, true)
 }
 
 private enum class BaseAlcohol(val label: String) {
@@ -59,6 +64,7 @@ fun DrunkWrappedHomeScreen(
     onOpenStats: () -> Unit = {}
 ) {
     var selectedFormat by remember { mutableStateOf<DrinkFormat?>(null) }
+    var selectedQuantity by remember { mutableStateOf(1) }
     var selectedAlcohol by remember { mutableStateOf<BaseAlcohol?>(null) }
     var selectedMixer by remember { mutableStateOf<Mixer?>(null) }
     var withIce by remember { mutableStateOf<Boolean?>(null) }
@@ -113,14 +119,29 @@ fun DrunkWrappedHomeScreen(
                     selected = selectedFormat == format,
                     onClick = {
                         selectedFormat = format
+                        selectedQuantity = 1
                         selectedAlcohol = null
-                        if (!format.asksMixer) selectedMixer = null
+                        selectedMixer = null
+                        withIce = null
                     }
                 )
             }
 
             if (selectedFormat != null) {
-                SectionTitle("2) Elige alcohol base")
+                SectionTitle("2) Cuantas consumiste?")
+                QuantitySelector(
+                    quantity = selectedQuantity,
+                    onDecrease = {
+                        if (selectedQuantity > 1) selectedQuantity -= 1
+                    },
+                    onIncrease = {
+                        selectedQuantity += 1
+                    }
+                )
+            }
+
+            if (selectedFormat?.requiresAlcoholBase == true) {
+                SectionTitle("Alcohol base")
                 BaseAlcohol.entries.forEach { alcohol ->
                     GiantOptionButton(
                         text = alcohol.label,
@@ -130,8 +151,8 @@ fun DrunkWrappedHomeScreen(
                 }
             }
 
-            if (selectedFormat?.asksMixer == true) {
-                SectionTitle("3) Elige refresco")
+            if (selectedFormat?.requiresMixer == true) {
+                SectionTitle("Mezcla")
                 Mixer.entries.forEach { mixer ->
                     GiantOptionButton(
                         text = mixer.label,
@@ -141,8 +162,8 @@ fun DrunkWrappedHomeScreen(
                 }
             }
 
-            if (selectedFormat != null) {
-                SectionTitle("4) Lleva hielo?")
+            if (selectedFormat?.requiresIce == true) {
+                SectionTitle("Hielo")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -163,7 +184,7 @@ fun DrunkWrappedHomeScreen(
             }
 
             if (selectedFormat != null) {
-                SectionTitle("5) Coste")
+                SectionTitle("Coste")
                 val priceLabel = if (isRobbed) "Valor estimado del robo" else "Precio"
                 Text(
                     text = priceLabel,
@@ -208,34 +229,46 @@ fun DrunkWrappedHomeScreen(
 
             val enteredCost = priceInput.toDoubleOrNull() ?: 0.0
             val hasCost = enteredCost > 0.0
-            val canSave = selectedFormat != null &&
-                selectedAlcohol != null &&
-                (selectedFormat?.asksMixer != true || selectedMixer != null) &&
-                withIce != null &&
+            val selected = selectedFormat
+            val canSave = selected != null &&
+                selectedQuantity >= 1 &&
+                (selected.requiresAlcoholBase.not() || selectedAlcohol != null) &&
+                (selected.requiresMixer.not() || selectedMixer != null) &&
+                (selected.requiresIce.not() || withIce != null) &&
                 hasCost
 
             Button(
                 onClick = {
                     val realCost = if (isRobbed) 0.0 else enteredCost
+                    val requiresAlcoholBase = selectedFormat?.requiresAlcoholBase == true
+                    val requiresMixer = selectedFormat?.requiresMixer == true
+                    val requiresIce = selectedFormat?.requiresIce == true
                     viewModel.guardarConsumicion(
                         formato = selectedFormat?.label.orEmpty(),
-                        alcoholBase = selectedAlcohol?.label.orEmpty(),
-                        mezcla = if (selectedFormat?.asksMixer == true) selectedMixer?.label else null,
-                        conHielo = withIce == true,
+                        alcoholBase = if (requiresAlcoholBase) selectedAlcohol?.label.orEmpty() else "",
+                        mezcla = if (requiresMixer) selectedMixer?.label else null,
+                        conHielo = if (requiresIce) withIce == true else false,
                         precioCapturado = enteredCost,
-                        esRobado = isRobbed
+                        esRobado = isRobbed,
+                        cantidad = selectedQuantity
                     )
 
                     lastSaved = buildString {
                         append(selectedFormat?.label)
-                        append(" | ")
-                        append(selectedAlcohol?.label)
-                        if (selectedFormat?.asksMixer == true) {
+                        append(" x")
+                        append(selectedQuantity)
+                        if (requiresAlcoholBase) {
+                            append(" | ")
+                            append(selectedAlcohol?.label)
+                        }
+                        if (requiresMixer) {
                             append(" + ")
                             append(selectedMixer?.label)
                         }
-                        append(" | Hielo: ")
-                        append(if (withIce == true) "Si" else "No")
+                        if (requiresIce) {
+                            append(" | Hielo: ")
+                            append(if (withIce == true) "Si" else "No")
+                        }
                         if (isRobbed) {
                             append(" | Valor estimado del robo: ")
                             append(formatMoney(enteredCost))
@@ -308,6 +341,39 @@ private fun removeLastDigit(currentValue: String): String {
 }
 
 private fun formatMoney(value: Double): String = String.format(Locale.US, "%.2f", value)
+
+@Composable
+private fun QuantitySelector(
+    quantity: Int,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        GiantOptionButton(
+            text = "-",
+            selected = false,
+            onClick = onDecrease,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = quantity.toString(),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f)
+        )
+        GiantOptionButton(
+            text = "+",
+            selected = false,
+            onClick = onIncrease,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
 
 @Composable
 private fun NumericPad(onKeyPress: (String) -> Unit) {

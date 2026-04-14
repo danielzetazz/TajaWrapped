@@ -32,7 +32,8 @@ class DrunkWrappedHomeViewModel(
         mezcla: String?,
         conHielo: Boolean,
         precioCapturado: Double,
-        esRobado: Boolean
+        esRobado: Boolean,
+        cantidad: Int = 1
     ) {
         viewModelScope.launch {
             _saveState.value = SaveConsumicionUiState(isSaving = true)
@@ -50,17 +51,24 @@ class DrunkWrappedHomeViewModel(
                 valorEstimado = valorEstimado
             )
 
-            repository.insertConsumicion(payload)
-                .onSuccess {
+            val total = cantidad.coerceAtLeast(1)
+            repeat(total) { index ->
+                val result = repository.insertConsumicion(payload)
+                if (result.isFailure) {
+                    val error = result.exceptionOrNull()
                     _saveState.update {
-                        SaveConsumicionUiState(isSuccess = true)
+                        SaveConsumicionUiState(
+                            errorMessage = error?.message
+                                ?: "Error al insertar en Supabase (${index + 1}/$total)"
+                        )
                     }
+                    return@launch
                 }
-                .onFailure { error ->
-                    _saveState.update {
-                        SaveConsumicionUiState(errorMessage = error.message ?: "Error al insertar en Supabase")
-                    }
-                }
+            }
+
+            _saveState.update {
+                SaveConsumicionUiState(isSuccess = true)
+            }
         }
     }
 }
