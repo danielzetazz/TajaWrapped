@@ -85,7 +85,12 @@ fun MainMenuScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    Text("NUEVO REGISTRO", style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        text = "NUEVO REGISTRO",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
                 Button(
@@ -98,7 +103,12 @@ fun MainMenuScreen(
                         contentColor = MaterialTheme.colorScheme.onSecondary
                     )
                 ) {
-                    Text("VER MI WRAPPED", style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        text = "VER MI WRAPPED",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
                 Button(
@@ -111,7 +121,12 @@ fun MainMenuScreen(
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
-                    Text("AJUSTES", style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        text = "AJUSTES",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }

@@ -20,6 +20,26 @@ Se añadió una pantalla `Settings` con estilo Speakeasy para configurar la expe
 
 En esta version los ajustes son de sesion (estado local en UI).
 
+## Base de datos Supabase
+
+La migracion inicial del esquema esta en:
+
+- `supabase/migrations/20260415_01_init_schema.sql`
+
+Tablas incluidas:
+
+- `consumiciones` (tabla existente, ampliada con `sesion_id`)
+- `sesiones` (registro de una borrachera / dia concreto)
+- `app_settings` (ajustes globales de la app)
+
+Aplicacion rapida de la migracion con Supabase CLI:
+
+```powershell
+supabase db push
+```
+
+Si prefieres pegarlo manualmente, abre el archivo SQL y ejecuta su contenido en el SQL Editor de Supabase.
+
 ## Flujo de registro
 
 1. Elegir formato: Copa, Chupito, Cerveza, Vino, Garrafa.
