@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +77,23 @@ fun DrunkWrappedHomeScreen(
     var draftedDrinks by remember { mutableStateOf(emptyList<DrinkDraft>()) }
     var showSummaryDialog by remember { mutableStateOf(false) }
     val saveState by viewModel.saveState.collectAsState()
+
+    LaunchedEffect(saveState.isSuccess) {
+        if (saveState.isSuccess) {
+            draftedDrinks = emptyList()
+            selectedFormat = null
+            selectedQuantity = 1
+            selectedAlcohol = null
+            selectedMixer = null
+            withIce = null
+            priceInput = "0"
+            isRobbed = false
+            lastSaved = null
+            showSummaryDialog = false
+            viewModel.limpiarEstadoGuardado()
+            onBackToMenu()
+        }
+    }
 
     Surface(
         modifier = Modifier.background(MaterialTheme.colorScheme.background),

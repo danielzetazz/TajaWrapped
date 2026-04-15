@@ -28,7 +28,10 @@ data class WrappedStatsUiState(
     val totalGastado: Double = 0.0,
     val totalAhorrado: Double = 0.0,
     val topBebida: String = "Sin datos",
-    val totalChupitos: Int = 0
+    val totalChupitos: Int = 0,
+    val totalTrucos: Int = 0,
+    val trucosDesbloqueados: Int = 0,
+    val trucosResumen: List<TrucoProgress> = emptyList()
 )
 
 class WrappedStatsViewModel(
@@ -69,13 +72,17 @@ class WrappedStatsViewModel(
 
     private fun applyRange(range: StatsRange) {
         val filtered = filterByRange(allRows, range)
+        val tricks = calculateTrucosSummary(filtered)
         _uiState.value = WrappedStatsUiState(
             isLoading = false,
             selectedRange = range,
             totalGastado = filtered.sumOf { it.precioPagado ?: 0.0 },
             totalAhorrado = filtered.filter { it.esRobado }.sumOf { it.valorEstimado ?: 0.0 },
             topBebida = calculateTopDrink(filtered),
-            totalChupitos = filtered.count { it.formato.equals("chupito", ignoreCase = true) }
+            totalChupitos = filtered.count { it.formato.equals("chupito", ignoreCase = true) },
+            totalTrucos = tricks.totalActivaciones,
+            trucosDesbloqueados = tricks.trucosDesbloqueados,
+            trucosResumen = tricks.detalles
         )
     }
 

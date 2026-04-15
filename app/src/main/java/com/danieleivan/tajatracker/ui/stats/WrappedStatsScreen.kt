@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -26,6 +28,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
@@ -41,6 +46,7 @@ fun WrappedStatsScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showTricksDialog by remember { mutableStateOf(false) }
     val transition = rememberInfiniteTransition(label = "wrappedTransition")
     val titleScale by transition.animateFloat(
         initialValue = 0.96f,
@@ -124,6 +130,29 @@ fun WrappedStatsScreen(
                 value = uiState.totalChupitos.toString(),
                 subtitle = "Velocidad de vertigo certificada"
             )
+            WrappedCard(
+                title = "Cantidad de trucos",
+                value = uiState.totalTrucos.toString(),
+                subtitle = "${uiState.trucosDesbloqueados} categorias desbloqueadas en este periodo"
+            )
+
+            Button(
+                onClick = { showTricksDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                )
+            ) {
+                Text(
+                    text = "VER RESUMEN DE TRUCOS",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
         Spacer(modifier = Modifier.size(8.dp))
@@ -138,9 +167,110 @@ fun WrappedStatsScreen(
                 contentColor = Color.Black
             )
         ) {
-            Text("VOLVER AL REGISTRO", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "VOLVER AL REGISTRO",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        }
+
+        if (showTricksDialog) {
+            TricksSummaryDialog(
+                range = uiState.selectedRange,
+                tricks = uiState.trucosResumen,
+                total = uiState.totalTrucos,
+                onDismiss = { showTricksDialog = false }
+            )
         }
     }
+}
+
+@Composable
+private fun TricksSummaryDialog(
+    range: StatsRange,
+    tricks: List<TrucoProgress>,
+    total: Int,
+    onDismiss: () -> Unit
+) {
+    val rangeLabel = when (range) {
+        StatsRange.LAST_7_DAYS -> "Ultimos 7 dias"
+        StatsRange.LAST_30_DAYS -> "Ultimos 30 dias"
+        StatsRange.ALL_TIME -> "Historico"
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text("CERRAR")
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Resumen de Trucos",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "$rangeLabel - Total: $total",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                tricks.forEach { trick ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = 520.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "${trick.nombre}: ${trick.veces}",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = trick.descripcion,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            if (!trick.trackeable) {
+                                Text(
+                                    text = trick.nota.orEmpty(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
 }
 
 @Composable
