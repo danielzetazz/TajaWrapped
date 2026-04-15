@@ -13,6 +13,7 @@ import com.danieleivan.tajatracker.ui.home.MainMenuScreen
 import com.danieleivan.tajatracker.ui.home.DrunkWrappedHomeScreen
 import com.danieleivan.tajatracker.ui.home.DrunkWrappedHomeViewModel
 import com.danieleivan.tajatracker.ui.home.DrunkWrappedHomeViewModelFactory
+import com.danieleivan.tajatracker.ui.settings.SettingsScreen
 import com.danieleivan.tajatracker.ui.stats.WrappedStatsScreen
 import com.danieleivan.tajatracker.ui.stats.WrappedStatsViewModel
 import com.danieleivan.tajatracker.ui.stats.WrappedStatsViewModelFactory
@@ -21,7 +22,8 @@ import com.danieleivan.tajatracker.ui.theme.DrunkWrappedTheme
 private enum class AppScreen {
     MENU,
     RECORD,
-    STATS
+    STATS,
+    SETTINGS
 }
 
 class MainActivity : ComponentActivity() {
@@ -43,7 +45,8 @@ class MainActivity : ComponentActivity() {
                 when (currentScreen) {
                     AppScreen.MENU -> MainMenuScreen(
                         onNewRecord = { currentScreen = AppScreen.RECORD },
-                        onOpenStats = { currentScreen = AppScreen.STATS }
+                        onOpenStats = { currentScreen = AppScreen.STATS },
+                        onOpenSettings = { currentScreen = AppScreen.SETTINGS }
                     )
 
                     AppScreen.RECORD -> DrunkWrappedHomeScreen(
@@ -54,6 +57,10 @@ class MainActivity : ComponentActivity() {
 
                     AppScreen.STATS -> WrappedStatsScreen(
                         viewModel = statsViewModel,
+                        onBack = { currentScreen = AppScreen.MENU }
+                    )
+
+                    AppScreen.SETTINGS -> SettingsScreen(
                         onBack = { currentScreen = AppScreen.MENU }
                     )
                 }

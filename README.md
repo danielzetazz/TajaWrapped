@@ -9,6 +9,17 @@ Pantalla principal en Jetpack Compose orientada a accesibilidad extrema para reg
 
 Tambien incluye una pantalla de estadisticas estilo Wrapped con animaciones y resumen de consumo.
 
+## Ajustes (nueva pantalla)
+
+Se añadió una pantalla `Settings` con estilo Speakeasy para configurar la experiencia de uso:
+
+- Modo discreto
+- Confirmacion antes de registrar dia
+- Recordatorio de hidratacion (30/45/60 min)
+- Limpiar borrador al salir
+
+En esta version los ajustes son de sesion (estado local en UI).
+
 ## Flujo de registro
 
 1. Elegir formato: Copa, Chupito, Cerveza, Vino, Garrafa.
@@ -22,6 +33,7 @@ Tambien incluye una pantalla de estadisticas estilo Wrapped con animaciones y re
 - `app/src/main/java/com/danieleivan/tajatracker/MainActivity.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/home/DrunkWrappedHomeScreen.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/home/DrunkWrappedHomeViewModel.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/ui/settings/SettingsScreen.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/stats/WrappedStatsScreen.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/stats/WrappedStatsViewModel.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/data/model/ConsumicionInsert.kt`
