@@ -9,6 +9,14 @@ Pantalla principal en Jetpack Compose orientada a accesibilidad extrema para reg
 
 Tambien incluye una pantalla de estadisticas estilo Wrapped con animaciones y resumen de consumo.
 
+## Login y autenticacion
+
+La app incorpora pantalla de login con Supabase Auth (email/password):
+
+- Si hay sesion activa, entra directo al menu.
+- Si no hay sesion, muestra la pantalla de acceso.
+- Soporta iniciar sesion, registro y recuperacion de contraseña.
+
 ## Ajustes (nueva pantalla)
 
 Se añadió una pantalla `Settings` con estilo Speakeasy para configurar la experiencia de uso:
@@ -51,6 +59,9 @@ Si prefieres pegarlo manualmente, abre el archivo SQL y ejecuta su contenido en 
 ## Estructura principal
 
 - `app/src/main/java/com/danieleivan/tajatracker/MainActivity.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/ui/auth/AuthScreen.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/ui/auth/AuthViewModel.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/data/repository/AuthRepository.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/home/DrunkWrappedHomeScreen.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/home/DrunkWrappedHomeViewModel.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/settings/SettingsScreen.kt`

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -24,18 +25,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun SettingsScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onSignOut: () -> Unit = {},
+    isAuthActionLoading: Boolean = false,
+    authErrorMessage: String? = null,
+    authInfoMessage: String? = null
 ) {
     var discreetMode by rememberSaveable { mutableStateOf(false) }
     var confirmBeforeRegister by rememberSaveable { mutableStateOf(true) }
     var hydrationReminderEnabled by rememberSaveable { mutableStateOf(false) }
     var hydrationIntervalIndex by rememberSaveable { mutableIntStateOf(1) }
     var clearDraftOnExit by rememberSaveable { mutableStateOf(true) }
+    var showSignOutDialog by rememberSaveable { mutableStateOf(false) }
 
     val intervals = listOf(30, 45, 60)
 
@@ -149,6 +156,53 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        Text(
+            text = "Cuenta",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Button(
+            onClick = { showSignOutDialog = true },
+            enabled = !isAuthActionLoading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary
+            )
+        ) {
+            Text(
+                text = "CERRAR SESIÓN",
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        if (authErrorMessage != null) {
+            Text(
+                text = authErrorMessage,
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFFFF6B6B),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        if (authInfoMessage != null) {
+            Text(
+                text = authInfoMessage,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.secondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
         Button(
             onClick = onBack,
             modifier = Modifier
@@ -164,6 +218,38 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleLarge
             )
         }
+
+        if (showSignOutDialog) {
+            AlertDialog(
+                onDismissRequest = { showSignOutDialog = false },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showSignOutDialog = false
+                            onSignOut()
+                        }
+                    ) {
+                        Text("CONFIRMAR")
+                    }
+                },
+                dismissButton = {
+                    Button(
+                        onClick = { showSignOutDialog = false },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Text("CANCELAR")
+                    }
+                },
+                title = { Text("Cerrar sesión") },
+                text = { Text("¿Seguro que quieres cerrar sesión en este dispositivo?") }
+            )
+        }
+
+        // La eliminación de cuenta se gestionará desde backend seguro (Edge Function)
+        // cuando esté disponible; en cliente solo exponemos cierre de sesión.
     }
 }
 
