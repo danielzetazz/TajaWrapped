@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.danieleivan.tajatracker.ui.home.MainMenuScreen
 import com.danieleivan.tajatracker.ui.home.DrunkWrappedHomeScreen
 import com.danieleivan.tajatracker.ui.home.DrunkWrappedHomeViewModel
 import com.danieleivan.tajatracker.ui.home.DrunkWrappedHomeViewModelFactory
@@ -17,13 +18,19 @@ import com.danieleivan.tajatracker.ui.stats.WrappedStatsViewModel
 import com.danieleivan.tajatracker.ui.stats.WrappedStatsViewModelFactory
 import com.danieleivan.tajatracker.ui.theme.DrunkWrappedTheme
 
+private enum class AppScreen {
+    MENU,
+    RECORD,
+    STATS
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             DrunkWrappedTheme {
-                var showStats by rememberSaveable { mutableStateOf(false) }
+                var currentScreen by rememberSaveable { mutableStateOf(AppScreen.MENU) }
 
                 val homeViewModel: DrunkWrappedHomeViewModel = viewModel(
                     factory = DrunkWrappedHomeViewModelFactory()
@@ -33,15 +40,21 @@ class MainActivity : ComponentActivity() {
                     factory = WrappedStatsViewModelFactory()
                 )
 
-                if (showStats) {
-                    WrappedStatsScreen(
-                        viewModel = statsViewModel,
-                        onBack = { showStats = false }
+                when (currentScreen) {
+                    AppScreen.MENU -> MainMenuScreen(
+                        onNewRecord = { currentScreen = AppScreen.RECORD },
+                        onOpenStats = { currentScreen = AppScreen.STATS }
                     )
-                } else {
-                    DrunkWrappedHomeScreen(
+
+                    AppScreen.RECORD -> DrunkWrappedHomeScreen(
                         viewModel = homeViewModel,
-                        onOpenStats = { showStats = true }
+                        onBackToMenu = { currentScreen = AppScreen.MENU },
+                        onOpenStats = { currentScreen = AppScreen.STATS }
+                    )
+
+                    AppScreen.STATS -> WrappedStatsScreen(
+                        viewModel = statsViewModel,
+                        onBack = { currentScreen = AppScreen.MENU }
                     )
                 }
             }

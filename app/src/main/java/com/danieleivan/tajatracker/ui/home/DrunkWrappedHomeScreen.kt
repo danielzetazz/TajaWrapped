@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,12 +44,11 @@ private enum class DrinkFormat(
 }
 
 private enum class BaseAlcohol(val label: String) {
-    RON("Ron"),
-    VODKA("Vodka"),
-    GIN("Gin"),
     WHISKY("Whisky"),
-    TEQUILA("Tequila"),
-    NONE("Sin alcohol")
+    RON("Ron"),
+    JAGGERMEISTER("Jaggermeister"),
+    GINEBRA("Ginebra"),
+    VODKA("Vodka")
 }
 
 private enum class Mixer(val label: String) {
@@ -61,6 +62,7 @@ private enum class Mixer(val label: String) {
 @Composable
 fun DrunkWrappedHomeScreen(
     viewModel: DrunkWrappedHomeViewModel,
+    onBackToMenu: () -> Unit = {},
     onOpenStats: () -> Unit = {}
 ) {
     var selectedFormat by remember { mutableStateOf<DrinkFormat?>(null) }
@@ -71,6 +73,8 @@ fun DrunkWrappedHomeScreen(
     var priceInput by remember { mutableStateOf("0") }
     var isRobbed by remember { mutableStateOf(false) }
     var lastSaved by remember { mutableStateOf<String?>(null) }
+    var draftedDrinks by remember { mutableStateOf(emptyList<DrinkDraft>()) }
+    var showSummaryDialog by remember { mutableStateOf(false) }
     val saveState by viewModel.saveState.collectAsState()
 
     Surface(
@@ -95,21 +99,43 @@ fun DrunkWrappedHomeScreen(
                 color = MaterialTheme.colorScheme.onBackground
             )
 
-            Button(
-                onClick = onOpenStats,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 84.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "VER MI WRAPPED",
-                    style = MaterialTheme.typography.titleLarge,
-                    textAlign = TextAlign.Center
-                )
+                Button(
+                    onClick = onBackToMenu,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 72.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Text(
+                        text = "MENU",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Button(
+                    onClick = onOpenStats,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 72.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
+                ) {
+                    Text(
+                        text = "WRAPPED",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             SectionTitle("1) Elige formato")
@@ -132,7 +158,9 @@ fun DrunkWrappedHomeScreen(
                 QuantitySelector(
                     quantity = selectedQuantity,
                     onDecrease = {
-                        if (selectedQuantity > 1) selectedQuantity -= 1
+                        if (selectedQuantity > 1) {
+                            selectedQuantity -= 1
+                        }
                     },
                     onIncrease = {
                         selectedQuantity += 1
@@ -227,74 +255,117 @@ fun DrunkWrappedHomeScreen(
                 }
             }
 
+            val selected = selectedFormat
+            val requiresAlcoholBase = selected?.requiresAlcoholBase == true
+            val requiresMixer = selected?.requiresMixer == true
+            val requiresIce = selected?.requiresIce == true
             val enteredCost = priceInput.toDoubleOrNull() ?: 0.0
             val hasCost = enteredCost > 0.0
-            val selected = selectedFormat
-            val canSave = selected != null &&
+            val priceIsOptional = isRobbed
+            val canBuildDraft = selected != null &&
                 selectedQuantity >= 1 &&
-                (selected.requiresAlcoholBase.not() || selectedAlcohol != null) &&
-                (selected.requiresMixer.not() || selectedMixer != null) &&
-                (selected.requiresIce.not() || withIce != null) &&
-                hasCost
+                (requiresAlcoholBase.not() || selectedAlcohol != null) &&
+                (requiresMixer.not() || selectedMixer != null) &&
+                (requiresIce.not() || withIce != null) &&
+                (priceIsOptional || hasCost)
 
-            Button(
-                onClick = {
-                    val realCost = if (isRobbed) 0.0 else enteredCost
-                    val requiresAlcoholBase = selectedFormat?.requiresAlcoholBase == true
-                    val requiresMixer = selectedFormat?.requiresMixer == true
-                    val requiresIce = selectedFormat?.requiresIce == true
-                    viewModel.guardarConsumicion(
-                        formato = selectedFormat?.label.orEmpty(),
-                        alcoholBase = if (requiresAlcoholBase) selectedAlcohol?.label.orEmpty() else "",
-                        mezcla = if (requiresMixer) selectedMixer?.label else null,
-                        conHielo = if (requiresIce) withIce == true else false,
-                        precioCapturado = enteredCost,
-                        esRobado = isRobbed,
-                        cantidad = selectedQuantity
+            val currentDraft = if (canBuildDraft) {
+                DrinkDraft(
+                    formato = selected.label,
+                    alcoholBase = if (requiresAlcoholBase) selectedAlcohol?.label.orEmpty() else "",
+                    mezcla = if (requiresMixer) selectedMixer?.label else null,
+                    conHielo = if (requiresIce) withIce == true else false,
+                    precioCapturado = enteredCost,
+                    esRobado = isRobbed,
+                    cantidad = selectedQuantity
+                )
+            } else {
+                null
+            }
+
+            if (selectedFormat != null) {
+                Button(
+                    onClick = {
+                        if (currentDraft != null) {
+                            draftedDrinks = draftedDrinks + currentDraft
+                            lastSaved = buildString {
+                                append(currentDraft.formato)
+                                append(" x")
+                                append(currentDraft.cantidad)
+                                if (currentDraft.alcoholBase.isNotBlank()) {
+                                    append(" | ")
+                                    append(currentDraft.alcoholBase)
+                                }
+                                if (currentDraft.mezcla != null) {
+                                    append(" + ")
+                                    append(currentDraft.mezcla)
+                                }
+                            }
+                            selectedQuantity = 1
+                            selectedAlcohol = null
+                            selectedMixer = null
+                            withIce = null
+                            priceInput = "0"
+                            isRobbed = false
+                        }
+                    },
+                    enabled = currentDraft != null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 88.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
                     )
+                ) {
+                    Text(
+                        text = "AÑADIR AL REGISTRO",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
 
-                    lastSaved = buildString {
-                        append(selectedFormat?.label)
-                        append(" x")
-                        append(selectedQuantity)
-                        if (requiresAlcoholBase) {
-                            append(" | ")
-                            append(selectedAlcohol?.label)
-                        }
-                        if (requiresMixer) {
-                            append(" + ")
-                            append(selectedMixer?.label)
-                        }
-                        if (requiresIce) {
-                            append(" | Hielo: ")
-                            append(if (withIce == true) "Si" else "No")
-                        }
-                        if (isRobbed) {
-                            append(" | Valor estimado del robo: ")
-                            append(formatMoney(enteredCost))
-                            append(" EUR")
-                            append(" | Coste real: 0.00 EUR")
-                        } else {
-                            append(" | Precio: ")
-                            append(formatMoney(realCost))
-                            append(" EUR")
-                        }
-                    }
-                },
-                enabled = canSave && !saveState.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 88.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(
-                    text = if (saveState.isSaving) "GUARDANDO..." else "REGISTRAR",
-                    style = MaterialTheme.typography.titleLarge,
-                    textAlign = TextAlign.Center
-                )
+            if (draftedDrinks.isNotEmpty()) {
+                SectionTitle("Registro actual")
+                draftedDrinks.forEach { draft ->
+                    DraftSummaryCard(draft)
+                }
+
+                Button(
+                    onClick = { showSummaryDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 88.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Text(
+                        text = "VER RESUMEN",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Button(
+                    onClick = { viewModel.guardarRegistro(draftedDrinks) },
+                    enabled = !saveState.isSaving,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 88.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        text = if (saveState.isSaving) "GUARDANDO REGISTRO..." else "REGISTRAR DÍA",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             if (saveState.errorMessage != null) {
@@ -315,9 +386,20 @@ fun DrunkWrappedHomeScreen(
 
             if (lastSaved != null) {
                 Text(
-                    text = "Ultima consumicion: $lastSaved",
+                    text = "Ultima bebida añadida: $lastSaved",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+
+            if (showSummaryDialog) {
+                SummaryDialog(
+                    draftedDrinks = draftedDrinks,
+                    onDismiss = { showSummaryDialog = false },
+                    onConfirm = {
+                        viewModel.guardarRegistro(draftedDrinks)
+                        showSummaryDialog = false
+                    }
                 )
             }
         }
@@ -341,6 +423,141 @@ private fun removeLastDigit(currentValue: String): String {
 }
 
 private fun formatMoney(value: Double): String = String.format(Locale.US, "%.2f", value)
+
+@Composable
+private fun SummaryDialog(
+    draftedDrinks: List<DrinkDraft>,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val totalUnits = draftedDrinks.sumOf { it.cantidad.coerceAtLeast(1) }
+    val totalValue = draftedDrinks.sumOf { draft ->
+        val unitValue = if (draft.esRobado) draft.precioCapturado else draft.precioCapturado
+        unitValue * draft.cantidad.coerceAtLeast(1)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text("REGISTRAR")
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                )
+            ) {
+                Text("SEGUIR EDITANDO")
+            }
+        },
+        title = {
+            Text(
+                text = "Resumen del registro",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Total de consumiciones: $totalUnits",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Total estimado: ${formatMoney(totalValue)} EUR",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                draftedDrinks.forEach { draft ->
+                    Text(
+                        text = buildString {
+                            append(draft.cantidad)
+                            append(" x ")
+                            append(draft.formato)
+                            if (draft.alcoholBase.isNotBlank()) {
+                                append(" | ")
+                                append(draft.alcoholBase)
+                            }
+                            if (draft.mezcla != null) {
+                                append(" + ")
+                                append(draft.mezcla)
+                            }
+                            if (draft.conHielo) {
+                                append(" | Hielo")
+                            }
+                            append(" | ")
+                            append(if (draft.esRobado) "Robo" else "Precio")
+                            append(": ")
+                            append(formatMoney(draft.precioCapturado))
+                            append(" EUR")
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun DraftSummaryCard(draft: DrinkDraft) {
+    val priceLabel = if (draft.esRobado) "Robo" else "Precio"
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "${draft.cantidad} x ${draft.formato}",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            if (draft.alcoholBase.isNotBlank()) {
+                Text(
+                    text = draft.alcoholBase,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            if (draft.mezcla != null) {
+                Text(
+                    text = "Mezcla: ${draft.mezcla}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (draft.conHielo) {
+                Text(
+                    text = "Con hielo",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = "$priceLabel: ${formatMoney(draft.precioCapturado)} EUR",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
 
 @Composable
 private fun QuantitySelector(

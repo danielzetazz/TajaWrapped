@@ -35,34 +35,59 @@ class DrunkWrappedHomeViewModel(
         esRobado: Boolean,
         cantidad: Int = 1
     ) {
+        guardarRegistro(
+            listOf(
+                DrinkDraft(
+                    formato = formato,
+                    alcoholBase = alcoholBase,
+                    mezcla = mezcla,
+                    conHielo = conHielo,
+                    precioCapturado = precioCapturado,
+                    esRobado = esRobado,
+                    cantidad = cantidad
+                )
+            )
+        )
+    }
+
+    fun guardarRegistro(registro: List<DrinkDraft>) {
         viewModelScope.launch {
             _saveState.value = SaveConsumicionUiState(isSaving = true)
 
-            val precioPagado = if (esRobado) 0.0 else precioCapturado
-            val valorEstimado = if (esRobado) precioCapturado else null
+            if (registro.isEmpty()) {
+                _saveState.update {
+                    SaveConsumicionUiState(errorMessage = "El registro está vacío")
+                }
+                return@launch
+            }
 
-            val payload = ConsumicionInsert(
-                formato = formato,
-                alcoholBase = alcoholBase,
-                mezcla = mezcla,
-                conHielo = conHielo,
-                precioPagado = precioPagado,
-                esRobado = esRobado,
-                valorEstimado = valorEstimado
-            )
+            registro.forEachIndexed { index, item ->
+                val precioPagado = if (item.esRobado) 0.0 else item.precioCapturado
+                val valorEstimado = if (item.esRobado) item.precioCapturado else null
 
-            val total = cantidad.coerceAtLeast(1)
-            repeat(total) { index ->
-                val result = repository.insertConsumicion(payload)
-                if (result.isFailure) {
-                    val error = result.exceptionOrNull()
-                    _saveState.update {
-                        SaveConsumicionUiState(
-                            errorMessage = error?.message
-                                ?: "Error al insertar en Supabase (${index + 1}/$total)"
-                        )
+                val payload = ConsumicionInsert(
+                    formato = item.formato,
+                    alcoholBase = item.alcoholBase,
+                    mezcla = item.mezcla,
+                    conHielo = item.conHielo,
+                    precioPagado = precioPagado,
+                    esRobado = item.esRobado,
+                    valorEstimado = valorEstimado
+                )
+
+                val total = item.cantidad.coerceAtLeast(1)
+                repeat(total) { repeatIndex ->
+                    val result = repository.insertConsumicion(payload)
+                    if (result.isFailure) {
+                        val error = result.exceptionOrNull()
+                        _saveState.update {
+                            SaveConsumicionUiState(
+                                errorMessage = error?.message
+                                    ?: "Error al insertar en Supabase (${index + 1}.${repeatIndex + 1}/$total)"
+                            )
+                        }
+                        return@launch
                     }
-                    return@launch
                 }
             }
 
@@ -70,6 +95,10 @@ class DrunkWrappedHomeViewModel(
                 SaveConsumicionUiState(isSuccess = true)
             }
         }
+    }
+
+    fun limpiarEstadoGuardado() {
+        _saveState.value = SaveConsumicionUiState()
     }
 }
 
