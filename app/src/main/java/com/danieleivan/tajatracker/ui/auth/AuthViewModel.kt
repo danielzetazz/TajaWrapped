@@ -68,11 +68,13 @@ class AuthViewModel(
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
             repository.signUp(email.trim(), password)
                 .onSuccess {
+                    val hasSession = repository.hasActiveSession()
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = null,
-                            infoMessage = "Cuenta creada. Revisa tu email para confirmar."
+                            isAuthenticated = hasSession,
+                            errorMessage = if (hasSession) null else "La verificación por email sigue activa en Supabase. Desactívala para acceso inmediato.",
+                            infoMessage = if (hasSession) "Cuenta creada y acceso concedido" else null
                         )
                     }
                 }
