@@ -7,6 +7,7 @@ data class DrinkDraft(
     val conHielo: Boolean,
     val precioCapturado: Double,
     val esRobado: Boolean,
-    val cantidad: Int
+    val cantidad: Int,
+    val hidalgoCount: Int = 0
 )
 

@@ -366,7 +366,7 @@ private fun PlacesSummaryDialog(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "${place.totalConsumiciones} consumiciones · ${place.totalDias} dias con registro",
+                                    text = "${place.totalRegistros} noches registradas",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )

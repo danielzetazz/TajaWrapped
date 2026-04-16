@@ -20,7 +20,11 @@ data class TrucosSummary(
     val detalles: List<TrucoProgress>
 )
 
-fun calculateTrucosSummary(rows: List<ConsumicionRow>): TrucosSummary {
+fun calculateTrucosSummary(
+    rows: List<ConsumicionRow>,
+    hidalgoTotal: Int = 0,
+    malacopaTotal: Int = 0
+): TrucosSummary {
     val groupedByDay = rows.groupBy { row ->
         row.fechaHora
             ?.let(::parseLocalDate)
@@ -77,9 +81,7 @@ fun calculateTrucosSummary(rows: List<ConsumicionRow>): TrucosSummary {
         TrucoProgress(
             nombre = "Hidalgo",
             descripcion = "Cubata de 1 solo buche",
-            veces = 0,
-            trackeable = false,
-            nota = "Necesita guardar el dato '1 buche' al registrar la bebida"
+            veces = hidalgoTotal.coerceAtLeast(0)
         ),
         TrucoProgress(
             nombre = "Goleador",
@@ -94,9 +96,7 @@ fun calculateTrucosSummary(rows: List<ConsumicionRow>): TrucosSummary {
         TrucoProgress(
             nombre = "Malacopa",
             descripcion = "Seguir bebiendo despues de potar",
-            veces = 0,
-            trackeable = false,
-            nota = "Necesita registrar el evento de potar en la app"
+            veces = malacopaTotal.coerceAtLeast(0)
         ),
         TrucoProgress(
             nombre = "Sinverguenza",

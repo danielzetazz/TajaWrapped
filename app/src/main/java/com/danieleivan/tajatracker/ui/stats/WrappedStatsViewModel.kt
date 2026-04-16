@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.danieleivan.tajatracker.data.model.ConsumicionRow
+import com.danieleivan.tajatracker.data.model.RegistroRow
 import com.danieleivan.tajatracker.data.remote.SupabaseProvider
 import com.danieleivan.tajatracker.data.repository.ConsumicionesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,8 +39,7 @@ data class WrappedStatsUiState(
 
 data class LugarResumen(
     val nombre: String,
-    val totalConsumiciones: Int,
-    val totalDias: Int
+    val totalRegistros: Int
 )
 
 class WrappedStatsViewModel(
@@ -49,6 +49,7 @@ class WrappedStatsViewModel(
     private val _uiState = MutableStateFlow(WrappedStatsUiState())
     val uiState: StateFlow<WrappedStatsUiState> = _uiState.asStateFlow()
     private var allRows: List<ConsumicionRow> = emptyList()
+    private var allRegistros: List<RegistroRow> = emptyList()
 
     init {
         cargarEstadisticas()
@@ -58,19 +59,23 @@ class WrappedStatsViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            repository.getConsumiciones()
-                .onSuccess { rows ->
-                    allRows = rows
-                    applyRange(uiState.value.selectedRange)
+            val consumicionesResult = repository.getConsumiciones()
+            val registrosResult = repository.getRegistros()
+
+            if (consumicionesResult.isFailure || registrosResult.isFailure) {
+                val error = consumicionesResult.exceptionOrNull() ?: registrosResult.exceptionOrNull()
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error?.message ?: "No se pudieron cargar las estadisticas"
+                    )
                 }
-                .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = error.message ?: "No se pudieron cargar las estadisticas"
-                        )
-                    }
-                }
+                return@launch
+            }
+
+            allRows = consumicionesResult.getOrDefault(emptyList())
+            allRegistros = registrosResult.getOrDefault(emptyList())
+            applyRange(uiState.value.selectedRange)
         }
     }
 
@@ -80,8 +85,15 @@ class WrappedStatsViewModel(
 
     private fun applyRange(range: StatsRange) {
         val filtered = filterByRange(allRows, range)
-        val tricks = calculateTrucosSummary(filtered)
-        val places = calculatePlaceSummary(filtered)
+        val filteredRegistros = filterRegistrosByRange(allRegistros, range)
+        val hidalgoTotal = filteredRegistros.sumOf { it.cubatasHidalgoTotal }
+        val vomitosTotal = filteredRegistros.sumOf { it.vomitosTotal }
+        val tricks = calculateTrucosSummary(
+            rows = filtered,
+            hidalgoTotal = hidalgoTotal,
+            malacopaTotal = vomitosTotal
+        )
+        val places = calculatePlaceSummary(filteredRegistros)
         _uiState.value = WrappedStatsUiState(
             isLoading = false,
             selectedRange = range,
@@ -98,6 +110,21 @@ class WrappedStatsViewModel(
     }
 
     private fun filterByRange(rows: List<ConsumicionRow>, range: StatsRange): List<ConsumicionRow> {
+        val now = Instant.now()
+        val limit = when (range) {
+            StatsRange.LAST_7_DAYS -> now.minus(7, ChronoUnit.DAYS)
+            StatsRange.LAST_30_DAYS -> now.minus(30, ChronoUnit.DAYS)
+            StatsRange.ALL_TIME -> null
+        }
+
+        if (limit == null) return rows
+        return rows.filter { row ->
+            val parsed = parseFechaHora(row.fechaHora)
+            parsed != null && !parsed.isBefore(limit)
+        }
+    }
+
+    private fun filterRegistrosByRange(rows: List<RegistroRow>, range: StatsRange): List<RegistroRow> {
         val now = Instant.now()
         val limit = when (range) {
             StatsRange.LAST_7_DAYS -> now.minus(7, ChronoUnit.DAYS)
@@ -141,26 +168,19 @@ class WrappedStatsViewModel(
         return "Top 1: $winner"
     }
 
-    private fun calculatePlaceSummary(rows: List<ConsumicionRow>): List<LugarResumen> {
+    private fun calculatePlaceSummary(rows: List<RegistroRow>): List<LugarResumen> {
         return rows
             .asSequence()
-            .filter { !it.lugarNombre.isNullOrBlank() }
-            .groupBy { it.lugarNombre!!.trim().lowercase() }
+            .filter { it.lugarNombre.isNotBlank() }
+            .groupBy { it.lugarNombre.trim().lowercase() }
             .map { (_, groupedRows) ->
-                val first = groupedRows.first().lugarNombre?.trim().orEmpty()
-                val totalDias = groupedRows
-                    .mapNotNull { row -> parseFechaHora(row.fechaHora)?.atZone(java.time.ZoneOffset.UTC)?.toLocalDate() }
-                    .toSet()
-                    .size
                 LugarResumen(
-                    nombre = first,
-                    totalConsumiciones = groupedRows.size,
-                    totalDias = totalDias
+                    nombre = groupedRows.first().lugarNombre.trim(),
+                    totalRegistros = groupedRows.size
                 )
             }
             .sortedWith(
-                compareByDescending<LugarResumen> { it.totalConsumiciones }
-                    .thenByDescending { it.totalDias }
+                compareByDescending<LugarResumen> { it.totalRegistros }
                     .thenBy { it.nombre.lowercase() }
             )
     }

@@ -2,6 +2,8 @@ package com.danieleivan.tajatracker.data.repository
 
 import com.danieleivan.tajatracker.data.model.ConsumicionInsert
 import com.danieleivan.tajatracker.data.model.ConsumicionRow
+import com.danieleivan.tajatracker.data.model.RegistroInsert
+import com.danieleivan.tajatracker.data.model.RegistroRow
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.json.Json
@@ -13,9 +15,34 @@ import kotlinx.serialization.json.jsonPrimitive
 class ConsumicionesRepository(
     private val supabaseClient: SupabaseClient
 ) {
+    suspend fun insertRegistro(registro: RegistroInsert): Result<Unit> = runCatching {
+        supabaseClient.from("registros").insert(registro)
+        Unit
+    }
+
     suspend fun insertConsumicion(consumicion: ConsumicionInsert): Result<Unit> = runCatching {
         supabaseClient.from("consumiciones").insert(consumicion)
         Unit
+    }
+
+    suspend fun getRegistros(): Result<List<RegistroRow>> = runCatching {
+        val rawJson = supabaseClient
+            .from("registros")
+            .select()
+            .data
+
+        Json.parseToJsonElement(rawJson)
+            .jsonArray
+            .map { item ->
+                val obj = item.jsonObject
+                RegistroRow(
+                    id = obj.readString("id").orEmpty(),
+                    fechaHora = obj.readString("fecha_hora"),
+                    lugarNombre = obj.readString("lugar_nombre").orEmpty(),
+                    cubatasHidalgoTotal = obj.readInt("cubatas_hidalgo_total") ?: 0,
+                    vomitosTotal = obj.readInt("vomitos_total") ?: 0
+                )
+            }
     }
 
     suspend fun getConsumiciones(): Result<List<ConsumicionRow>> = runCatching {
@@ -52,6 +79,8 @@ private fun JsonObject.readString(key: String): String? {
 private fun JsonObject.readLong(key: String): Long? = readString(key)?.toLongOrNull()
 
 private fun JsonObject.readDouble(key: String): Double? = readString(key)?.toDoubleOrNull()
+
+private fun JsonObject.readInt(key: String): Int? = readString(key)?.toIntOrNull()
 
 private fun JsonObject.readBoolean(key: String): Boolean? = readString(key)?.toBooleanStrictOrNull()
 

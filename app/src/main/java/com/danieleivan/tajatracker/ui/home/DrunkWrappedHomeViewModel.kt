@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.danieleivan.tajatracker.data.model.ConsumicionInsert
+import com.danieleivan.tajatracker.data.model.RegistroInsert
 import com.danieleivan.tajatracker.data.remote.SupabaseProvider
 import com.danieleivan.tajatracker.data.repository.ConsumicionesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.OffsetDateTime
+import java.util.UUID
 
 data class SaveConsumicionUiState(
     val isSaving: Boolean = false,
@@ -45,14 +48,20 @@ class DrunkWrappedHomeViewModel(
                     conHielo = conHielo,
                     precioCapturado = precioCapturado,
                     esRobado = esRobado,
-                    cantidad = cantidad
+                    cantidad = cantidad,
+                    hidalgoCount = 0
                 )
             ),
-            lugarNombre = lugarNombre.orEmpty()
+            lugarNombre = lugarNombre.orEmpty(),
+            vomitosTotal = 0
         )
     }
 
-    fun guardarRegistro(registro: List<DrinkDraft>, lugarNombre: String) {
+    fun guardarRegistro(
+        registro: List<DrinkDraft>,
+        lugarNombre: String,
+        vomitosTotal: Int
+    ) {
         viewModelScope.launch {
             _saveState.value = SaveConsumicionUiState(isSaving = true)
 
@@ -71,11 +80,35 @@ class DrunkWrappedHomeViewModel(
                 return@launch
             }
 
+            val fechaRegistro = OffsetDateTime.now().toString()
+            val registroId = UUID.randomUUID().toString()
+            val hidalgoTotal = registro.sumOf { it.hidalgoCount.coerceAtLeast(0) }
+            val registroPayload = RegistroInsert(
+                id = registroId,
+                fechaHora = fechaRegistro,
+                lugarNombre = lugarNormalizado,
+                cubatasHidalgoTotal = hidalgoTotal,
+                vomitosTotal = vomitosTotal.coerceAtLeast(0)
+            )
+
+            val registroResult = repository.insertRegistro(registroPayload)
+            if (registroResult.isFailure) {
+                _saveState.update {
+                    SaveConsumicionUiState(
+                        errorMessage = registroResult.exceptionOrNull()?.message
+                            ?: "No se pudo guardar el registro de la noche"
+                    )
+                }
+                return@launch
+            }
+
             registro.forEachIndexed { index, item ->
                 val precioPagado = if (item.esRobado) 0.0 else item.precioCapturado
                 val valorEstimado = if (item.esRobado) item.precioCapturado else null
 
                 val payload = ConsumicionInsert(
+                    fechaHora = fechaRegistro,
+                    registroId = registroId,
                     lugarNombre = lugarNormalizado,
                     formato = item.formato,
                     alcoholBase = item.alcoholBase,

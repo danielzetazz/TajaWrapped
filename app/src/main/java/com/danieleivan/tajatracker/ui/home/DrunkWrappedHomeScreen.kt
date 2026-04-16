@@ -73,6 +73,7 @@ fun DrunkWrappedHomeScreen(
     var withIce by remember { mutableStateOf<Boolean?>(null) }
     var priceInput by remember { mutableStateOf("0") }
     var placeInput by remember { mutableStateOf("") }
+    var vomitosCount by remember { mutableStateOf(0) }
     var isRobbed by remember { mutableStateOf(false) }
     var lastSaved by remember { mutableStateOf<String?>(null) }
     var draftedDrinks by remember { mutableStateOf(emptyList<DrinkDraft>()) }
@@ -89,6 +90,7 @@ fun DrunkWrappedHomeScreen(
             withIce = null
             priceInput = "0"
             placeInput = ""
+            vomitosCount = 0
             isRobbed = false
             lastSaved = null
             showSummaryDialog = false
@@ -356,8 +358,58 @@ fun DrunkWrappedHomeScreen(
 
             if (draftedDrinks.isNotEmpty()) {
                 SectionTitle("Registro actual")
-                draftedDrinks.forEach { draft ->
-                    DraftSummaryCard(draft)
+                draftedDrinks.forEachIndexed { index, draft ->
+                    DraftSummaryCard(
+                        draft = draft,
+                        canAdjustHidalgo = isCubataFormat(draft.formato),
+                        onIncreaseHidalgo = {
+                            draftedDrinks = draftedDrinks.mapIndexed { mapIndex, item ->
+                                if (mapIndex != index) item
+                                else item.copy(
+                                    hidalgoCount = (item.hidalgoCount + 1)
+                                        .coerceAtMost(item.cantidad.coerceAtLeast(0))
+                                )
+                            }
+                        },
+                        onDecreaseHidalgo = {
+                            draftedDrinks = draftedDrinks.mapIndexed { mapIndex, item ->
+                                if (mapIndex != index) item
+                                else item.copy(hidalgoCount = (item.hidalgoCount - 1).coerceAtLeast(0))
+                            }
+                        }
+                    )
+                }
+
+                SectionTitle("Trucos especiales de la noche")
+                Text(
+                    text = "Cubatas Hidalgo totales: ${draftedDrinks.sumOf { it.hidalgoCount }}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    GiantOptionButton(
+                        text = "-",
+                        selected = false,
+                        onClick = { vomitosCount = (vomitosCount - 1).coerceAtLeast(0) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "Vomitos: $vomitosCount",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(2f)
+                    )
+                    GiantOptionButton(
+                        text = "+",
+                        selected = false,
+                        onClick = { vomitosCount += 1 },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 OutlinedTextField(
@@ -387,7 +439,7 @@ fun DrunkWrappedHomeScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.guardarRegistro(draftedDrinks, placeInput) },
+                    onClick = { viewModel.guardarRegistro(draftedDrinks, placeInput, vomitosCount) },
                     enabled = !saveState.isSaving && placeInput.trim().isNotEmpty(),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -433,10 +485,11 @@ fun DrunkWrappedHomeScreen(
                 SummaryDialog(
                     draftedDrinks = draftedDrinks,
                     lugarNombre = placeInput,
+                    vomitosTotal = vomitosCount,
                     canConfirm = placeInput.trim().isNotEmpty(),
                     onDismiss = { showSummaryDialog = false },
                     onConfirm = {
-                        viewModel.guardarRegistro(draftedDrinks, placeInput)
+                        viewModel.guardarRegistro(draftedDrinks, placeInput, vomitosCount)
                         showSummaryDialog = false
                     }
                 )
@@ -467,11 +520,13 @@ private fun formatMoney(value: Double): String = String.format(Locale.US, "%.2f"
 private fun SummaryDialog(
     draftedDrinks: List<DrinkDraft>,
     lugarNombre: String,
+    vomitosTotal: Int,
     canConfirm: Boolean,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
     val totalUnits = draftedDrinks.sumOf { it.cantidad.coerceAtLeast(1) }
+    val totalHidalgos = draftedDrinks.sumOf { it.hidalgoCount.coerceAtLeast(0) }
     val totalValue = draftedDrinks.sumOf { draft ->
         val unitValue = if (draft.esRobado) draft.precioCapturado else draft.precioCapturado
         unitValue * draft.cantidad.coerceAtLeast(1)
@@ -525,6 +580,16 @@ private fun SummaryDialog(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
+                Text(
+                    text = "Cubatas Hidalgo: $totalHidalgos",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Vomitos registrados: ${vomitosTotal.coerceAtLeast(0)}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
                 draftedDrinks.forEach { draft ->
                     Text(
                         text = buildString {
@@ -542,6 +607,10 @@ private fun SummaryDialog(
                             if (draft.conHielo) {
                                 append(" | Hielo")
                             }
+                            if (isCubataFormat(draft.formato)) {
+                                append(" | Hidalgo: ")
+                                append(draft.hidalgoCount)
+                            }
                             append(" | ")
                             append(if (draft.esRobado) "Robo" else "Precio")
                             append(": ")
@@ -558,7 +627,12 @@ private fun SummaryDialog(
 }
 
 @Composable
-private fun DraftSummaryCard(draft: DrinkDraft) {
+private fun DraftSummaryCard(
+    draft: DrinkDraft,
+    canAdjustHidalgo: Boolean,
+    onIncreaseHidalgo: () -> Unit,
+    onDecreaseHidalgo: () -> Unit
+) {
     val priceLabel = if (draft.esRobado) "Robo" else "Precio"
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -602,8 +676,51 @@ private fun DraftSummaryCard(draft: DrinkDraft) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (canAdjustHidalgo) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = onDecreaseHidalgo,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 46.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Text("-")
+                    }
+                    Text(
+                        text = "Hidalgo: ${draft.hidalgoCount}/${draft.cantidad}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(2f)
+                    )
+                    Button(
+                        onClick = onIncreaseHidalgo,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 46.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Text("+")
+                    }
+                }
+            }
         }
     }
+}
+
+private fun isCubataFormat(formato: String): Boolean {
+    return formato.equals("Copa", ignoreCase = true) || formato.equals("Garrafa", ignoreCase = true)
 }
 
 @Composable
