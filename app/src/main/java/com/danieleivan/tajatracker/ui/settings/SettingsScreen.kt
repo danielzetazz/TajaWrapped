@@ -50,8 +50,8 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .padding(horizontal = 20.dp, vertical = 22.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -95,15 +95,16 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         text = "Intervalo de recordatorio",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
 
@@ -116,7 +117,7 @@ fun SettingsScreen(
                                 onClick = { hydrationIntervalIndex = index },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .heightIn(min = 60.dp),
+                                    .heightIn(min = 54.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = if (hydrationIntervalIndex == index) {
                                         MaterialTheme.colorScheme.primary
@@ -169,7 +170,7 @@ fun SettingsScreen(
             enabled = !isAuthActionLoading,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 72.dp),
+                .heightIn(min = 62.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary
@@ -177,7 +178,7 @@ fun SettingsScreen(
         ) {
             Text(
                 text = "CERRAR SESIÓN",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.labelLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -187,7 +188,7 @@ fun SettingsScreen(
             Text(
                 text = authErrorMessage,
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color(0xFFFF6B6B),
+                color = MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -207,7 +208,7 @@ fun SettingsScreen(
             onClick = onBack,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 78.dp),
+                .heightIn(min = 66.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary
@@ -215,7 +216,9 @@ fun SettingsScreen(
         ) {
             Text(
                 text = "VOLVER AL MENÚ",
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         }
 
@@ -263,7 +266,8 @@ private fun SettingsToggleCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -276,7 +280,7 @@ private fun SettingsToggleCard(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(

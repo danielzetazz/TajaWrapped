@@ -10,6 +10,7 @@ import java.time.OffsetDateTime
 @Serializable
 data class ConsumicionInsert(
     @SerialName("fecha_hora") val fechaHora: String = OffsetDateTime.now().toString(),
+    @SerialName("lugar_nombre") val lugarNombre: String? = null,
     @SerialName("formato") val formato: String,
     @SerialName("alcohol_base") val alcoholBase: String,
     @SerialName("mezcla") val mezcla: String?,

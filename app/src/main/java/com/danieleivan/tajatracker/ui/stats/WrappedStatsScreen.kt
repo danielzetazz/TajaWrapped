@@ -25,6 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -47,12 +47,13 @@ fun WrappedStatsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showTricksDialog by remember { mutableStateOf(false) }
+    var showPlacesDialog by remember { mutableStateOf(false) }
     val transition = rememberInfiniteTransition(label = "wrappedTransition")
     val titleScale by transition.animateFloat(
-        initialValue = 0.96f,
-        targetValue = 1.04f,
+        initialValue = 0.99f,
+        targetValue = 1.01f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200),
+            animation = tween(1800),
             repeatMode = RepeatMode.Reverse
         ),
         label = "titleScale"
@@ -63,18 +64,22 @@ fun WrappedStatsScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1A0033), Color(0xFF3A0057), Color(0xFF000000))
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.surface,
+                        MaterialTheme.colorScheme.background
+                    )
                 )
             )
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(horizontal = 18.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
             text = "Tu DrunkWrapped 2026",
             style = MaterialTheme.typography.headlineLarge,
-            color = Color(0xFFFFEA00),
-            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier
                 .fillMaxWidth()
                 .scale(titleScale),
@@ -83,7 +88,7 @@ fun WrappedStatsScreen(
         Text(
             text = "Fiesta, numeros y cero remordimientos",
             style = MaterialTheme.typography.titleMedium,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center
         )
@@ -101,13 +106,13 @@ fun WrappedStatsScreen(
                 onClick = viewModel::cargarEstadisticas,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 72.dp),
+                    .heightIn(min = 64.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF00B8FF),
-                    contentColor = Color.Black
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             ) {
-                Text("REINTENTAR", style = MaterialTheme.typography.titleLarge)
+                Text("REINTENTAR", style = MaterialTheme.typography.labelLarge)
             }
         } else {
             WrappedCard(
@@ -130,17 +135,12 @@ fun WrappedStatsScreen(
                 value = uiState.totalChupitos.toString(),
                 subtitle = "Velocidad de vertigo certificada"
             )
-            WrappedCard(
-                title = "Cantidad de trucos",
-                value = uiState.totalTrucos.toString(),
-                subtitle = "${uiState.trucosDesbloqueados} categorias desbloqueadas en este periodo"
-            )
 
             Button(
                 onClick = { showTricksDialog = true },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 72.dp),
+                    .heightIn(min = 64.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary,
                     contentColor = MaterialTheme.colorScheme.onSecondary
@@ -148,7 +148,25 @@ fun WrappedStatsScreen(
             ) {
                 Text(
                     text = "VER RESUMEN DE TRUCOS",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Button(
+                onClick = { showPlacesDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                )
+            ) {
+                Text(
+                    text = "VER RESUMEN DE LUGARES",
+                    style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
@@ -161,15 +179,15 @@ fun WrappedStatsScreen(
             onClick = onBack,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 78.dp),
+                .heightIn(min = 68.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFFEA00),
-                contentColor = Color.Black
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
         ) {
             Text(
                 text = "VOLVER AL REGISTRO",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
@@ -177,10 +195,17 @@ fun WrappedStatsScreen(
 
         if (showTricksDialog) {
             TricksSummaryDialog(
-                range = uiState.selectedRange,
                 tricks = uiState.trucosResumen,
                 total = uiState.totalTrucos,
                 onDismiss = { showTricksDialog = false }
+            )
+        }
+
+        if (showPlacesDialog) {
+            PlacesSummaryDialog(
+                range = uiState.selectedRange,
+                places = uiState.lugaresResumen,
+                onDismiss = { showPlacesDialog = false }
             )
         }
     }
@@ -188,17 +213,10 @@ fun WrappedStatsScreen(
 
 @Composable
 private fun TricksSummaryDialog(
-    range: StatsRange,
     tricks: List<TrucoProgress>,
     total: Int,
     onDismiss: () -> Unit
 ) {
-    val rangeLabel = when (range) {
-        StatsRange.LAST_7_DAYS -> "Ultimos 7 dias"
-        StatsRange.LAST_30_DAYS -> "Ultimos 30 dias"
-        StatsRange.ALL_TIME -> "Historico"
-    }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -220,11 +238,6 @@ private fun TricksSummaryDialog(
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Text(
-                    text = "$rangeLabel - Total: $total",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         },
         text = {
@@ -234,6 +247,16 @@ private fun TricksSummaryDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                Text(
+                    text = "Trucos totales: $total",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "${tricks.count { it.veces > 0 }} categorias desbloqueadas",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 tricks.forEach { trick ->
                     Card(
                         modifier = Modifier
@@ -274,6 +297,89 @@ private fun TricksSummaryDialog(
 }
 
 @Composable
+private fun PlacesSummaryDialog(
+    range: StatsRange,
+    places: List<LugarResumen>,
+    onDismiss: () -> Unit
+) {
+    val rangeLabel = when (range) {
+        StatsRange.LAST_7_DAYS -> "Ultimos 7 dias"
+        StatsRange.LAST_30_DAYS -> "Ultimos 30 dias"
+        StatsRange.ALL_TIME -> "Historico"
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text("CERRAR")
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Text(
+                text = "Resumen de lugares · $rangeLabel",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Lugares totales: ${places.size}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (places.isEmpty()) {
+                    Text(
+                        text = "Todavia no hay lugares registrados en este periodo.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    places.forEach { place ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = place.nombre,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "${place.totalConsumiciones} consumiciones · ${place.totalDias} dias con registro",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
 private fun RowRangeSelector(
     selectedRange: StatsRange,
     onRangeSelected: (StatsRange) -> Unit
@@ -281,8 +387,8 @@ private fun RowRangeSelector(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = "Periodo",
-            style = MaterialTheme.typography.titleLarge,
-            color = Color(0xFFB3E5FC)
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         RowRangeButtons(
@@ -313,15 +419,25 @@ private fun RowRangeButtons(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 70.dp),
+            .heightIn(min = 56.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) Color(0xFFFFEA00) else Color(0xFF2F3352),
-            contentColor = if (isSelected) Color.Black else Color.White
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            },
+            contentColor = if (isSelected) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
         )
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleLarge
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -333,31 +449,34 @@ private fun WrappedCard(
     subtitle: String = ""
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF111122)),
-        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+        ),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
-                color = Color(0xFFFFEA00)
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
             )
             if (value.isNotBlank()) {
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = Color.White
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             if (subtitle.isNotBlank()) {
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color(0xFFB3E5FC)
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -365,4 +484,3 @@ private fun WrappedCard(
 }
 
 private fun formatEuros(value: Double): String = String.format(Locale.US, "%.2f", value)
-

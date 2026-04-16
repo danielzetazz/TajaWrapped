@@ -33,7 +33,8 @@ class DrunkWrappedHomeViewModel(
         conHielo: Boolean,
         precioCapturado: Double,
         esRobado: Boolean,
-        cantidad: Int = 1
+        cantidad: Int = 1,
+        lugarNombre: String? = null
     ) {
         guardarRegistro(
             listOf(
@@ -46,11 +47,12 @@ class DrunkWrappedHomeViewModel(
                     esRobado = esRobado,
                     cantidad = cantidad
                 )
-            )
+            ),
+            lugarNombre = lugarNombre.orEmpty()
         )
     }
 
-    fun guardarRegistro(registro: List<DrinkDraft>) {
+    fun guardarRegistro(registro: List<DrinkDraft>, lugarNombre: String) {
         viewModelScope.launch {
             _saveState.value = SaveConsumicionUiState(isSaving = true)
 
@@ -61,11 +63,20 @@ class DrunkWrappedHomeViewModel(
                 return@launch
             }
 
+            val lugarNormalizado = lugarNombre.trim()
+            if (lugarNormalizado.isBlank()) {
+                _saveState.update {
+                    SaveConsumicionUiState(errorMessage = "Indica dónde has bebido antes de registrar")
+                }
+                return@launch
+            }
+
             registro.forEachIndexed { index, item ->
                 val precioPagado = if (item.esRobado) 0.0 else item.precioCapturado
                 val valorEstimado = if (item.esRobado) item.precioCapturado else null
 
                 val payload = ConsumicionInsert(
+                    lugarNombre = lugarNormalizado,
                     formato = item.formato,
                     alcoholBase = item.alcoholBase,
                     mezcla = item.mezcla,

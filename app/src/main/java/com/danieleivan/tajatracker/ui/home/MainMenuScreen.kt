@@ -29,8 +29,8 @@ fun MainMenuScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
+            .padding(horizontal = 20.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -52,17 +52,17 @@ fun MainMenuScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = MaterialTheme.shapes.medium,
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            shape = MaterialTheme.shapes.large,
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "¿Qué quieres hacer?",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
@@ -79,7 +79,7 @@ fun MainMenuScreen(
                     onClick = onNewRecord,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 84.dp),
+                        .heightIn(min = 66.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -87,7 +87,7 @@ fun MainMenuScreen(
                 ) {
                     Text(
                         text = "NUEVO REGISTRO",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -97,7 +97,7 @@ fun MainMenuScreen(
                     onClick = onOpenStats,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 84.dp),
+                        .heightIn(min = 66.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary
@@ -105,7 +105,7 @@ fun MainMenuScreen(
                 ) {
                     Text(
                         text = "VER MI WRAPPED",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -115,7 +115,7 @@ fun MainMenuScreen(
                     onClick = onOpenSettings,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 72.dp),
+                        .heightIn(min = 62.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -123,7 +123,7 @@ fun MainMenuScreen(
                 ) {
                     Text(
                         text = "AJUSTES",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )

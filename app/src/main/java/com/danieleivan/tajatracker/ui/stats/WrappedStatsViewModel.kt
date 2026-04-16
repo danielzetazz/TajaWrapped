@@ -31,7 +31,15 @@ data class WrappedStatsUiState(
     val totalChupitos: Int = 0,
     val totalTrucos: Int = 0,
     val trucosDesbloqueados: Int = 0,
-    val trucosResumen: List<TrucoProgress> = emptyList()
+    val trucosResumen: List<TrucoProgress> = emptyList(),
+    val totalLugares: Int = 0,
+    val lugaresResumen: List<LugarResumen> = emptyList()
+)
+
+data class LugarResumen(
+    val nombre: String,
+    val totalConsumiciones: Int,
+    val totalDias: Int
 )
 
 class WrappedStatsViewModel(
@@ -73,6 +81,7 @@ class WrappedStatsViewModel(
     private fun applyRange(range: StatsRange) {
         val filtered = filterByRange(allRows, range)
         val tricks = calculateTrucosSummary(filtered)
+        val places = calculatePlaceSummary(filtered)
         _uiState.value = WrappedStatsUiState(
             isLoading = false,
             selectedRange = range,
@@ -82,7 +91,9 @@ class WrappedStatsViewModel(
             totalChupitos = filtered.count { it.formato.equals("chupito", ignoreCase = true) },
             totalTrucos = tricks.totalActivaciones,
             trucosDesbloqueados = tricks.trucosDesbloqueados,
-            trucosResumen = tricks.detalles
+            trucosResumen = tricks.detalles,
+            totalLugares = places.size,
+            lugaresResumen = places
         )
     }
 
@@ -128,6 +139,30 @@ class WrappedStatsViewModel(
 
         val winner = grouped.maxByOrNull { it.value.size }?.key ?: "Aun no hay consumiciones"
         return "Top 1: $winner"
+    }
+
+    private fun calculatePlaceSummary(rows: List<ConsumicionRow>): List<LugarResumen> {
+        return rows
+            .asSequence()
+            .filter { !it.lugarNombre.isNullOrBlank() }
+            .groupBy { it.lugarNombre!!.trim().lowercase() }
+            .map { (_, groupedRows) ->
+                val first = groupedRows.first().lugarNombre?.trim().orEmpty()
+                val totalDias = groupedRows
+                    .mapNotNull { row -> parseFechaHora(row.fechaHora)?.atZone(java.time.ZoneOffset.UTC)?.toLocalDate() }
+                    .toSet()
+                    .size
+                LugarResumen(
+                    nombre = first,
+                    totalConsumiciones = groupedRows.size,
+                    totalDias = totalDias
+                )
+            }
+            .sortedWith(
+                compareByDescending<LugarResumen> { it.totalConsumiciones }
+                    .thenByDescending { it.totalDias }
+                    .thenBy { it.nombre.lowercase() }
+            )
     }
 }
 

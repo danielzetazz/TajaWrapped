@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.util.Locale
@@ -72,6 +72,7 @@ fun DrunkWrappedHomeScreen(
     var selectedMixer by remember { mutableStateOf<Mixer?>(null) }
     var withIce by remember { mutableStateOf<Boolean?>(null) }
     var priceInput by remember { mutableStateOf("0") }
+    var placeInput by remember { mutableStateOf("") }
     var isRobbed by remember { mutableStateOf(false) }
     var lastSaved by remember { mutableStateOf<String?>(null) }
     var draftedDrinks by remember { mutableStateOf(emptyList<DrinkDraft>()) }
@@ -87,6 +88,7 @@ fun DrunkWrappedHomeScreen(
             selectedMixer = null
             withIce = null
             priceInput = "0"
+            placeInput = ""
             isRobbed = false
             lastSaved = null
             showSummaryDialog = false
@@ -125,7 +127,7 @@ fun DrunkWrappedHomeScreen(
                     onClick = onBackToMenu,
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 72.dp),
+                        .heightIn(min = 62.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -133,7 +135,7 @@ fun DrunkWrappedHomeScreen(
                 ) {
                     Text(
                         text = "MENU",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -142,7 +144,7 @@ fun DrunkWrappedHomeScreen(
                     onClick = onOpenStats,
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 72.dp),
+                        .heightIn(min = 62.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary
@@ -150,7 +152,7 @@ fun DrunkWrappedHomeScreen(
                 ) {
                     Text(
                         text = "WRAPPED",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -259,15 +261,23 @@ fun DrunkWrappedHomeScreen(
                     onClick = { isRobbed = !isRobbed },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 92.dp),
+                        .heightIn(min = 72.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isRobbed) Color(0xFFD50000) else Color(0xFF7F1D1D),
-                        contentColor = Color.White
+                        containerColor = if (isRobbed) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        },
+                        contentColor = if (isRobbed) {
+                            MaterialTheme.colorScheme.onError
+                        } else {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        }
                     )
                 ) {
                     Text(
                         text = if (isRobbed) "¡Robado! ACTIVADO" else "¡Robado!",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -330,7 +340,7 @@ fun DrunkWrappedHomeScreen(
                     enabled = currentDraft != null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 88.dp),
+                        .heightIn(min = 68.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary
@@ -338,7 +348,7 @@ fun DrunkWrappedHomeScreen(
                 ) {
                     Text(
                         text = "AÑADIR AL REGISTRO",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -350,11 +360,20 @@ fun DrunkWrappedHomeScreen(
                     DraftSummaryCard(draft)
                 }
 
+                OutlinedTextField(
+                    value = placeInput,
+                    onValueChange = { placeInput = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Lugar donde has bebido") },
+                    placeholder = { Text("Bar, casa de un colega, discoteca, terraza...") },
+                    singleLine = true
+                )
+
                 Button(
                     onClick = { showSummaryDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 88.dp),
+                        .heightIn(min = 64.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -362,17 +381,17 @@ fun DrunkWrappedHomeScreen(
                 ) {
                     Text(
                         text = "VER RESUMEN",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Center
                     )
                 }
 
                 Button(
-                    onClick = { viewModel.guardarRegistro(draftedDrinks) },
-                    enabled = !saveState.isSaving,
+                    onClick = { viewModel.guardarRegistro(draftedDrinks, placeInput) },
+                    enabled = !saveState.isSaving && placeInput.trim().isNotEmpty(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 88.dp),
+                        .heightIn(min = 68.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -380,7 +399,7 @@ fun DrunkWrappedHomeScreen(
                 ) {
                     Text(
                         text = if (saveState.isSaving) "GUARDANDO REGISTRO..." else "REGISTRAR DÍA",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -390,7 +409,7 @@ fun DrunkWrappedHomeScreen(
                 Text(
                     text = "Error al guardar: ${saveState.errorMessage}",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color(0xFFFF6B6B)
+                    color = MaterialTheme.colorScheme.error
                 )
             }
 
@@ -413,9 +432,11 @@ fun DrunkWrappedHomeScreen(
             if (showSummaryDialog) {
                 SummaryDialog(
                     draftedDrinks = draftedDrinks,
+                    lugarNombre = placeInput,
+                    canConfirm = placeInput.trim().isNotEmpty(),
                     onDismiss = { showSummaryDialog = false },
                     onConfirm = {
-                        viewModel.guardarRegistro(draftedDrinks)
+                        viewModel.guardarRegistro(draftedDrinks, placeInput)
                         showSummaryDialog = false
                     }
                 )
@@ -445,6 +466,8 @@ private fun formatMoney(value: Double): String = String.format(Locale.US, "%.2f"
 @Composable
 private fun SummaryDialog(
     draftedDrinks: List<DrinkDraft>,
+    lugarNombre: String,
+    canConfirm: Boolean,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -459,6 +482,7 @@ private fun SummaryDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
+                enabled = canConfirm,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -493,6 +517,11 @@ private fun SummaryDialog(
                 )
                 Text(
                     text = "Total estimado: ${formatMoney(totalValue)} EUR",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Lugar: ${lugarNombre.trim().ifBlank { "Sin especificar" }}",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -630,7 +659,7 @@ private fun NumericPad(onKeyPress: (String) -> Unit) {
                         onClick = { onKeyPress(key) },
                         modifier = Modifier
                             .weight(1f)
-                            .heightIn(min = 88.dp),
+                            .heightIn(min = 72.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.surface,
                             contentColor = MaterialTheme.colorScheme.onSurface
@@ -638,7 +667,7 @@ private fun NumericPad(onKeyPress: (String) -> Unit) {
                     ) {
                         Text(
                             text = key,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -650,7 +679,7 @@ private fun NumericPad(onKeyPress: (String) -> Unit) {
             onClick = { onKeyPress("C") },
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 88.dp),
+                .heightIn(min = 64.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary
@@ -658,7 +687,7 @@ private fun NumericPad(onKeyPress: (String) -> Unit) {
         ) {
             Text(
                 text = "BORRAR TODO",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.labelLarge,
                 textAlign = TextAlign.Center
             )
         }
@@ -669,7 +698,7 @@ private fun NumericPad(onKeyPress: (String) -> Unit) {
 private fun SectionTitle(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleLarge,
+        style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(top = 8.dp)
     )
@@ -697,7 +726,7 @@ private fun GiantOptionButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 84.dp),
+            .heightIn(min = 66.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor
@@ -705,7 +734,7 @@ private fun GiantOptionButton(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.CenterVertically)
         )

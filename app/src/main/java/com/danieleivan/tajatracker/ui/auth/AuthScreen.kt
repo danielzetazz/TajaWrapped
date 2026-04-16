@@ -52,8 +52,8 @@ fun AuthScreen(
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = 20.dp, vertical = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = "Acceso privado",
@@ -73,13 +73,13 @@ fun AuthScreen(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     OutlinedTextField(
                         value = email,
@@ -109,7 +109,7 @@ fun AuthScreen(
                         enabled = !uiState.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 78.dp),
+                            .heightIn(min = 64.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -117,7 +117,7 @@ fun AuthScreen(
                     ) {
                         Text(
                             text = if (uiState.isLoading) "ACCEDIENDO..." else "INICIAR SESIÓN",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.labelLarge,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -128,7 +128,7 @@ fun AuthScreen(
                         enabled = !uiState.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 72.dp),
+                            .heightIn(min = 62.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary,
                             contentColor = MaterialTheme.colorScheme.onSecondary
@@ -136,7 +136,7 @@ fun AuthScreen(
                     ) {
                         Text(
                             text = "CREAR CUENTA",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.labelLarge,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -147,7 +147,7 @@ fun AuthScreen(
                         enabled = !uiState.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 66.dp),
+                            .heightIn(min = 58.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -165,7 +165,7 @@ fun AuthScreen(
                         Text(
                             text = uiState.errorMessage.orEmpty(),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = Color(0xFFFF6B6B),
+                            color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
