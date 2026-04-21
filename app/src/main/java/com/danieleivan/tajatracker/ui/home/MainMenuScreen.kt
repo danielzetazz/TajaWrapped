@@ -4,12 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,6 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.danieleivan.tajatracker.ui.components.AppButtonTone
+import com.danieleivan.tajatracker.ui.components.PremiumButton
+import com.danieleivan.tajatracker.ui.components.PremiumCard
 import com.danieleivan.tajatracker.ui.theme.DrunkWrappedTheme
 
 @Composable
@@ -29,8 +27,8 @@ fun MainMenuScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+            .padding(horizontal = 22.dp, vertical = 26.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -49,15 +47,10 @@ fun MainMenuScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = MaterialTheme.shapes.large,
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
+        PremiumCard(modifier = Modifier.fillMaxWidth()) {
             Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -75,59 +68,32 @@ fun MainMenuScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Button(
+                PremiumButton(
+                    text = "NUEVO REGISTRO",
                     onClick = onNewRecord,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 66.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Text(
-                        text = "NUEVO REGISTRO",
-                        style = MaterialTheme.typography.labelLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                        .fillMaxWidth(),
+                    minHeight = 62,
+                    tone = AppButtonTone.Primary
+                )
 
-                Button(
+                PremiumButton(
+                    text = "VER MI WRAPPED",
                     onClick = onOpenStats,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 66.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
-                ) {
-                    Text(
-                        text = "VER MI WRAPPED",
-                        style = MaterialTheme.typography.labelLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                        .fillMaxWidth(),
+                    minHeight = 62,
+                    tone = AppButtonTone.Secondary
+                )
 
-                Button(
+                PremiumButton(
+                    text = "AJUSTES",
                     onClick = onOpenSettings,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 62.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                ) {
-                    Text(
-                        text = "AJUSTES",
-                        style = MaterialTheme.typography.labelLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                        .fillMaxWidth(),
+                    minHeight = 58,
+                    tone = AppButtonTone.Tertiary
+                )
             }
         }
     }

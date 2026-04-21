@@ -12,8 +12,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -29,6 +27,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.danieleivan.tajatracker.ui.components.AppButtonTone
+import com.danieleivan.tajatracker.ui.components.PremiumButton
+import com.danieleivan.tajatracker.ui.components.PremiumCard
 
 @Composable
 fun SettingsScreen(
@@ -65,8 +66,8 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 22.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 22.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -107,15 +108,10 @@ fun SettingsScreen(
         )
 
         if (hydrationReminderEnabled) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-            ) {
+            PremiumCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
                         text = "Intervalo de recordatorio",
@@ -180,12 +176,7 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-        ) {
+        PremiumCard(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -207,45 +198,25 @@ fun SettingsScreen(
                     enabled = !isAuthActionLoading
                 )
 
-                Button(
+                PremiumButton(
+                    text = if (isAuthActionLoading) "ACTUALIZANDO..." else "GUARDAR USUARIO",
                     onClick = { onUpdateUsername(usernameDraft) },
                     enabled = !isAuthActionLoading && usernameDraft.isNotBlank() && usernameDraft != (currentUsername ?: ""),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 58.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Text(
-                        text = if (isAuthActionLoading) "ACTUALIZANDO..." else "GUARDAR USUARIO",
-                        style = MaterialTheme.typography.labelLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                    modifier = Modifier.fillMaxWidth(),
+                    minHeight = 56,
+                    tone = AppButtonTone.Primary
+                )
             }
         }
 
-        Button(
+        PremiumButton(
+            text = "CERRAR SESIÓN",
             onClick = { showSignOutDialog = true },
             enabled = !isAuthActionLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 62.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.onSecondary
-            )
-        ) {
-            Text(
-                text = "CERRAR SESIÓN",
-                style = MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+            modifier = Modifier.fillMaxWidth(),
+            minHeight = 58,
+            tone = AppButtonTone.Secondary
+        )
 
         if (authErrorMessage != null) {
             Text(
@@ -267,23 +238,13 @@ fun SettingsScreen(
             )
         }
 
-        Button(
+        PremiumButton(
+            text = "VOLVER AL MENÚ",
             onClick = onBack,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 66.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.onSecondary
-            )
-        ) {
-            Text(
-                text = "VOLVER AL MENÚ",
-                style = MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+            modifier = Modifier.fillMaxWidth(),
+            minHeight = 62,
+            tone = AppButtonTone.Tertiary
+        )
 
         if (showSignOutDialog) {
             AlertDialog(
@@ -326,12 +287,7 @@ private fun SettingsToggleCard(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
+    PremiumCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(14.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
