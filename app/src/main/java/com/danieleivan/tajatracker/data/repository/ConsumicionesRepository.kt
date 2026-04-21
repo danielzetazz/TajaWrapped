@@ -58,6 +58,7 @@ class ConsumicionesRepository(
                 ConsumicionRow(
                     id = obj.readLong("id"),
                     fechaHora = obj.readString("fecha_hora"),
+                    registroId = obj.readString("registro_id"),
                     lugarNombre = obj.readString("lugar_nombre"),
                     formato = obj.readString("formato").orEmpty(),
                     alcoholBase = obj.readString("alcohol_base").orEmpty(),

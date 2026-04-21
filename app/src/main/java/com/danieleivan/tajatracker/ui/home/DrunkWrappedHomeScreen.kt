@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -23,12 +24,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import java.time.LocalDate
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private enum class DrinkFormat(
@@ -63,6 +71,7 @@ private enum class Mixer(val label: String) {
 @Composable
 fun DrunkWrappedHomeScreen(
     viewModel: DrunkWrappedHomeViewModel,
+    confirmBeforeRegister: Boolean = true,
     onBackToMenu: () -> Unit = {},
     onOpenStats: () -> Unit = {}
 ) {
@@ -73,11 +82,13 @@ fun DrunkWrappedHomeScreen(
     var withIce by remember { mutableStateOf<Boolean?>(null) }
     var priceInput by remember { mutableStateOf("0") }
     var placeInput by remember { mutableStateOf("") }
+    var selectedRegisterDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var vomitosCount by remember { mutableStateOf(0) }
     var isRobbed by remember { mutableStateOf(false) }
     var lastSaved by remember { mutableStateOf<String?>(null) }
     var draftedDrinks by remember { mutableStateOf(emptyList<DrinkDraft>()) }
     var showSummaryDialog by remember { mutableStateOf(false) }
+    var showRegisterConfirmationDialog by remember { mutableStateOf(false) }
     val saveState by viewModel.saveState.collectAsState()
 
     LaunchedEffect(saveState.isSuccess) {
@@ -90,10 +101,12 @@ fun DrunkWrappedHomeScreen(
             withIce = null
             priceInput = "0"
             placeInput = ""
+            selectedRegisterDate = LocalDate.now().toString()
             vomitosCount = 0
             isRobbed = false
             lastSaved = null
             showSummaryDialog = false
+            showRegisterConfirmationDialog = false
             viewModel.limpiarEstadoGuardado()
             onBackToMenu()
         }
@@ -187,6 +200,25 @@ fun DrunkWrappedHomeScreen(
                     onIncrease = {
                         selectedQuantity += 1
                     }
+                )
+
+                SectionTitle("Día del registro")
+                OutlinedTextField(
+                    value = selectedRegisterDate,
+                    onValueChange = { selectedRegisterDate = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Fecha") },
+                    placeholder = { Text("yyyy-MM-dd") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        keyboardType = KeyboardType.Ascii
+                    )
+                )
+                Text(
+                    text = "Formato recomendado: 2026-04-21",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -439,8 +471,19 @@ fun DrunkWrappedHomeScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.guardarRegistro(draftedDrinks, placeInput, vomitosCount) },
-                    enabled = !saveState.isSaving && placeInput.trim().isNotEmpty(),
+                    onClick = {
+                        if (confirmBeforeRegister) {
+                            showRegisterConfirmationDialog = true
+                        } else {
+                            viewModel.guardarRegistro(
+                                draftedDrinks,
+                                placeInput,
+                                vomitosCount,
+                                selectedRegisterDate
+                            )
+                        }
+                    },
+                    enabled = !saveState.isSaving && placeInput.trim().isNotEmpty() && isValidDateInput(selectedRegisterDate),
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 68.dp),
@@ -455,6 +498,42 @@ fun DrunkWrappedHomeScreen(
                         textAlign = TextAlign.Center
                     )
                 }
+            }
+
+            if (showRegisterConfirmationDialog) {
+                AlertDialog(
+                    onDismissRequest = { showRegisterConfirmationDialog = false },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showRegisterConfirmationDialog = false
+                                viewModel.guardarRegistro(
+                                    draftedDrinks,
+                                    placeInput,
+                                    vomitosCount,
+                                    selectedRegisterDate
+                                )
+                            }
+                        ) {
+                            Text("CONFIRMAR")
+                        }
+                    },
+                    dismissButton = {
+                        Button(
+                            onClick = { showRegisterConfirmationDialog = false },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Text("CANCELAR")
+                        }
+                    },
+                    title = { Text("Confirmar registro") },
+                    text = {
+                        Text("¿Estás seguro de que quieres confirmar el registro del día?")
+                    }
+                )
             }
 
             if (saveState.errorMessage != null) {
@@ -485,11 +564,12 @@ fun DrunkWrappedHomeScreen(
                 SummaryDialog(
                     draftedDrinks = draftedDrinks,
                     lugarNombre = placeInput,
+                    fechaRegistro = selectedRegisterDate,
                     vomitosTotal = vomitosCount,
-                    canConfirm = placeInput.trim().isNotEmpty(),
+                    canConfirm = placeInput.trim().isNotEmpty() && isValidDateInput(selectedRegisterDate),
                     onDismiss = { showSummaryDialog = false },
                     onConfirm = {
-                        viewModel.guardarRegistro(draftedDrinks, placeInput, vomitosCount)
+                        viewModel.guardarRegistro(draftedDrinks, placeInput, vomitosCount, selectedRegisterDate)
                         showSummaryDialog = false
                     }
                 )
@@ -520,6 +600,7 @@ private fun formatMoney(value: Double): String = String.format(Locale.US, "%.2f"
 private fun SummaryDialog(
     draftedDrinks: List<DrinkDraft>,
     lugarNombre: String,
+    fechaRegistro: String,
     vomitosTotal: Int,
     canConfirm: Boolean,
     onDismiss: () -> Unit,
@@ -581,6 +662,11 @@ private fun SummaryDialog(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
+                    text = "Fecha: ${formatRegistroDateLabel(fechaRegistro)}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
                     text = "Cubatas Hidalgo: $totalHidalgos",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
@@ -624,6 +710,20 @@ private fun SummaryDialog(
             }
         }
     )
+}
+
+private fun isValidDateInput(value: String): Boolean {
+    val input = value.trim()
+    if (input.isBlank()) return false
+    return runCatching { LocalDate.parse(input) }.isSuccess ||
+        runCatching { OffsetDateTime.parse(input) }.isSuccess
+}
+
+private fun formatRegistroDateLabel(value: String): String {
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    return runCatching { LocalDate.parse(value.trim()).format(formatter) }
+        .recoverCatching { OffsetDateTime.parse(value.trim()).toLocalDate().format(formatter) }
+        .getOrDefault(value.ifBlank { "Sin fecha" })
 }
 
 @Composable

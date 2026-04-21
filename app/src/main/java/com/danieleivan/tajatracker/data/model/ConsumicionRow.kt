@@ -3,6 +3,7 @@ package com.danieleivan.tajatracker.data.model
 data class ConsumicionRow(
     val id: Long? = null,
     val fechaHora: String? = null,
+    val registroId: String? = null,
     val lugarNombre: String? = null,
     val formato: String = "",
     val alcoholBase: String = "",

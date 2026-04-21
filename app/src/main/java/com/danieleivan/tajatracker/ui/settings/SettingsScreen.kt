@@ -36,6 +36,8 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onSignOut: () -> Unit = {},
     currentUsername: String? = null,
+    confirmBeforeRegister: Boolean = true,
+    onConfirmBeforeRegisterChange: (Boolean) -> Unit = {},
     onRefreshAccountData: () -> Unit = {},
     onUpdateUsername: (String) -> Unit = {},
     isAuthActionLoading: Boolean = false,
@@ -43,7 +45,6 @@ fun SettingsScreen(
     authInfoMessage: String? = null
 ) {
     var discreetMode by rememberSaveable { mutableStateOf(false) }
-    var confirmBeforeRegister by rememberSaveable { mutableStateOf(true) }
     var hydrationReminderEnabled by rememberSaveable { mutableStateOf(false) }
     var hydrationIntervalIndex by rememberSaveable { mutableIntStateOf(1) }
     var clearDraftOnExit by rememberSaveable { mutableStateOf(true) }
@@ -97,7 +98,7 @@ fun SettingsScreen(
             title = "Confirmar antes de registrar día",
             subtitle = "Muestra confirmación final antes del guardado en lote.",
             checked = confirmBeforeRegister,
-            onCheckedChange = { confirmBeforeRegister = it }
+            onCheckedChange = onConfirmBeforeRegisterChange
         )
 
         SettingsToggleCard(

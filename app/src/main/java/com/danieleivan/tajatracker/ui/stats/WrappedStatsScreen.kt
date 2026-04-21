@@ -6,6 +6,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,6 +49,8 @@ fun WrappedStatsScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showTricksDialog by remember { mutableStateOf(false) }
     var showPlacesDialog by remember { mutableStateOf(false) }
+    var showRecordsDialog by remember { mutableStateOf(false) }
+    var selectedRegistro by remember { mutableStateOf<RegistroResumenUi?>(null) }
     val transition = rememberInfiniteTransition(label = "wrappedTransition")
     val titleScale by transition.animateFloat(
         initialValue = 0.99f,
@@ -171,6 +174,24 @@ fun WrappedStatsScreen(
                     textAlign = TextAlign.Center
                 )
             }
+
+            Button(
+                onClick = { showRecordsDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            ) {
+                Text(
+                    text = "VER REGISTROS DEL PERIODO",
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
         Spacer(modifier = Modifier.size(8.dp))
@@ -206,6 +227,22 @@ fun WrappedStatsScreen(
                 range = uiState.selectedRange,
                 places = uiState.lugaresResumen,
                 onDismiss = { showPlacesDialog = false }
+            )
+        }
+
+        if (showRecordsDialog) {
+            RecordsSummaryDialog(
+                range = uiState.selectedRange,
+                records = uiState.registrosResumen,
+                onDismiss = { showRecordsDialog = false },
+                onRecordSelected = { selectedRegistro = it }
+            )
+        }
+
+        selectedRegistro?.let { registro ->
+            RecordDetailDialog(
+                record = registro,
+                onDismiss = { selectedRegistro = null }
             )
         }
     }
@@ -407,6 +444,187 @@ private fun RowRangeSelector(
             onClick = { onRangeSelected(StatsRange.ALL_TIME) }
         )
     }
+}
+
+@Composable
+private fun RecordsSummaryDialog(
+    range: StatsRange,
+    records: List<RegistroResumenUi>,
+    onDismiss: () -> Unit,
+    onRecordSelected: (RegistroResumenUi) -> Unit
+) {
+    val rangeLabel = when (range) {
+        StatsRange.LAST_7_DAYS -> "Ultimos 7 dias"
+        StatsRange.LAST_30_DAYS -> "Ultimos 30 dias"
+        StatsRange.ALL_TIME -> "Historico"
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text("CERRAR")
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Text(
+                text = "Registros · $rangeLabel",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 440.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Total de registros: ${records.size}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                if (records.isEmpty()) {
+                    Text(
+                        text = "Todavia no hay registros en este periodo.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    records.forEach { record ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onRecordSelected(record) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = record.lugarNombre,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = record.fechaTexto,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Consumiciones: ${record.totalConsumiciones} · Hidalgo: ${record.cubatasHidalgoTotal} · Vomitos: ${record.vomitosTotal}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun RecordDetailDialog(
+    record: RegistroResumenUi,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text("CERRAR")
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = record.lugarNombre,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = record.fechaTexto,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 440.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Total consumiciones: ${record.totalConsumiciones}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Cubatas Hidalgo: ${record.cubatasHidalgoTotal}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Vomitos: ${record.vomitosTotal}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                if (record.consumicionesResumen.isEmpty()) {
+                    Text(
+                        text = "No hay consumiciones asociadas a este registro.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    record.consumicionesResumen.forEach { item ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "${item.cantidad} x ${item.descripcion}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
 }
 
 @Composable

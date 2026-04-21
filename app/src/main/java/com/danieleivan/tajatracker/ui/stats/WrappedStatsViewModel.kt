@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 enum class StatsRange {
     LAST_7_DAYS,
@@ -30,16 +32,33 @@ data class WrappedStatsUiState(
     val totalAhorrado: Double = 0.0,
     val topBebida: String = "Sin datos",
     val totalChupitos: Int = 0,
+    val totalRegistros: Int = 0,
     val totalTrucos: Int = 0,
     val trucosDesbloqueados: Int = 0,
     val trucosResumen: List<TrucoProgress> = emptyList(),
     val totalLugares: Int = 0,
-    val lugaresResumen: List<LugarResumen> = emptyList()
+    val lugaresResumen: List<LugarResumen> = emptyList(),
+    val registrosResumen: List<RegistroResumenUi> = emptyList()
 )
 
 data class LugarResumen(
     val nombre: String,
     val totalRegistros: Int
+)
+
+data class ConsumicionResumenUi(
+    val descripcion: String,
+    val cantidad: Int
+)
+
+data class RegistroResumenUi(
+    val id: String,
+    val fechaTexto: String,
+    val lugarNombre: String,
+    val cubatasHidalgoTotal: Int,
+    val vomitosTotal: Int,
+    val totalConsumiciones: Int,
+    val consumicionesResumen: List<ConsumicionResumenUi>
 )
 
 class WrappedStatsViewModel(
@@ -88,6 +107,7 @@ class WrappedStatsViewModel(
         val filteredRegistros = filterRegistrosByRange(allRegistros, range)
         val hidalgoTotal = filteredRegistros.sumOf { it.cubatasHidalgoTotal }
         val vomitosTotal = filteredRegistros.sumOf { it.vomitosTotal }
+        val registrosResumen = calculateRegistroSummary(filteredRegistros, filtered)
         val tricks = calculateTrucosSummary(
             rows = filtered,
             hidalgoTotal = hidalgoTotal,
@@ -101,11 +121,13 @@ class WrappedStatsViewModel(
             totalAhorrado = filtered.filter { it.esRobado }.sumOf { it.valorEstimado ?: 0.0 },
             topBebida = calculateTopDrink(filtered),
             totalChupitos = filtered.count { it.formato.equals("chupito", ignoreCase = true) },
+            totalRegistros = registrosResumen.size,
             totalTrucos = tricks.totalActivaciones,
             trucosDesbloqueados = tricks.trucosDesbloqueados,
             trucosResumen = tricks.detalles,
             totalLugares = places.size,
-            lugaresResumen = places
+            lugaresResumen = places,
+            registrosResumen = registrosResumen
         )
     }
 
@@ -183,6 +205,74 @@ class WrappedStatsViewModel(
                 compareByDescending<LugarResumen> { it.totalRegistros }
                     .thenBy { it.nombre.lowercase() }
             )
+    }
+
+    private fun calculateRegistroSummary(
+        registros: List<RegistroRow>,
+        consumiciones: List<ConsumicionRow>
+    ): List<RegistroResumenUi> {
+        val consumicionesByRegistro = consumiciones
+            .asSequence()
+            .filter { !it.registroId.isNullOrBlank() }
+            .groupBy { it.registroId.orEmpty() }
+
+        val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale.forLanguageTag("es-ES"))
+
+        return registros
+            .sortedByDescending { parseFechaHora(it.fechaHora) ?: Instant.EPOCH }
+            .map { registro ->
+                val registroConsumiciones = consumicionesByRegistro[registro.id].orEmpty()
+                val groupedDescriptions = registroConsumiciones
+                    .groupBy { describeConsumicion(it) }
+                    .map { (descripcion, rows) ->
+                        ConsumicionResumenUi(
+                            descripcion = descripcion,
+                            cantidad = rows.size
+                        )
+                    }
+                    .sortedWith(
+                        compareByDescending<ConsumicionResumenUi> { it.cantidad }
+                            .thenBy { it.descripcion.lowercase() }
+                    )
+
+                RegistroResumenUi(
+                    id = registro.id,
+                    fechaTexto = parseFechaHora(registro.fechaHora)
+                        ?.atZone(java.time.ZoneId.systemDefault())
+                        ?.format(dateFormatter)
+                        ?: registro.fechaHora.orEmpty().ifBlank { "Sin fecha" },
+                    lugarNombre = registro.lugarNombre.ifBlank { "Sin lugar" },
+                    cubatasHidalgoTotal = registro.cubatasHidalgoTotal,
+                    vomitosTotal = registro.vomitosTotal,
+                    totalConsumiciones = registroConsumiciones.size,
+                    consumicionesResumen = groupedDescriptions
+                )
+            }
+    }
+
+    private fun describeConsumicion(row: ConsumicionRow): String {
+        return buildString {
+            append(row.formato.ifBlank { "Bebida" })
+            if (row.alcoholBase.isNotBlank()) {
+                append(" | ")
+                append(row.alcoholBase)
+            }
+            if (!row.mezcla.isNullOrBlank()) {
+                append(" + ")
+                append(row.mezcla)
+            }
+            if (row.conHielo) {
+                append(" | Hielo")
+            }
+            if (row.esRobado) {
+                append(" | Robado")
+            }
+
+            val precio = row.precioPagado ?: row.valorEstimado ?: 0.0
+            append(" | ")
+            append(String.format(Locale.US, "%.2f", precio))
+            append(" EUR")
+        }
     }
 }
 
