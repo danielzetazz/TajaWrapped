@@ -1,79 +1,155 @@
-# DrunkWrapped (Android)
+# DrunkWrapped
 
-Pantalla principal en Jetpack Compose orientada a accesibilidad extrema para registrar consumiciones:
+DrunkWrapped es una app Android en **Kotlin + Jetpack Compose + Material 3** para registrar noches de bebida y ver su recap con una estética **Speakeasy premium**: oscura, elegante, discreta y con acentos dorados/bronce.
 
-- Modo oscuro obligatorio
-- Alto contraste
-- Textos grandes
-- Botones gigantes (objetivos tactiles >= 84dp)
+## Qué hace la app
 
-Tambien incluye una pantalla de estadisticas estilo Wrapped con animaciones y resumen de consumo.
+- Registro rápido de consumiciones por formato:
+  - Copa
+  - Chupito
+  - Cerveza
+  - Vino
+  - Garrafa
+- Registro de noches/sesiones completas con:
+  - lugar
+  - fecha elegida antes de guardar
+  - cubatas Hidalgo
+  - vómitos
+- Recap estilo Wrapped con:
+  - filtros por **7 días**, **30 días** e **histórico**
+  - resumen de trucos
+  - resumen de lugares
+  - lista de registros del periodo
+  - detalle de cada registro al pulsarlo
+- Autenticación real con **Supabase Auth** usando:
+  - login por **usuario**
+  - registro separado con **correo + usuario + contraseña**
+  - sesión persistente entre aperturas
+- Pantalla de ajustes con opciones de cuenta y experiencia.
 
-## Login y autenticacion
+## Línea visual
 
-La app incorpora pantalla de login con Supabase Auth (email/password):
+La UI sigue una identidad nocturna y premium:
 
-- Si hay sesion activa, entra directo al menu.
-- Si no hay sesion, muestra la pantalla de acceso.
-- Soporta iniciar sesion, registro y recuperacion de contraseña.
+- fondo oscuro profundo
+- superficies sobrias y cálidas
+- acentos dorados/bronce suavizados
+- tipografía serif/sans-serif con jerarquía elegante
+- botones y cards más refinados
+- diálogos y resúmenes coherentes con el resto de la app
 
-## Ajustes (nueva pantalla)
+## Funcionalidades destacadas
 
-Se añadió una pantalla `Settings` con estilo Speakeasy para configurar la experiencia de uso:
+### Autenticación
 
-- Modo discreto
-- Confirmacion antes de registrar dia
-- Recordatorio de hidratacion (30/45/60 min)
-- Limpiar borrador al salir
+- Login con **usuario** y contraseña
+- Registro separado con **correo**, **usuario** y contraseña
+- Sesión persistente usando Supabase Auth
+- Recuperación de contraseña
 
-En esta version los ajustes son de sesion (estado local en UI).
+### Ajustes
 
-## Base de datos Supabase
+La pantalla de ajustes permite:
 
-La migracion inicial del esquema esta en:
+- cerrar sesión
+- cambiar el nombre de usuario de la cuenta
+- activar/desactivar confirmación antes de registrar un día
+- mantener otros ajustes visuales y de experiencia
 
-- `supabase/migrations/20260415_01_init_schema.sql`
+### Registro de noche
 
-Tablas incluidas:
+Antes de registrar un día se puede indicar:
 
-- `consumiciones` (tabla existente, ampliada con `sesion_id`)
-- `sesiones` (registro de una borrachera / dia concreto)
-- `app_settings` (ajustes globales de la app)
+- lugar donde se ha bebido
+- fecha del registro
+- número de consumiciones
+- cubatas Hidalgo
+- vómitos
+- detalle de bebidas robadas sin precio
 
-Aplicacion rapida de la migracion con Supabase CLI:
+### Recap / Wrapped
 
-```powershell
-supabase db push
-```
+El apartado de estadísticas muestra:
 
-Si prefieres pegarlo manualmente, abre el archivo SQL y ejecuta su contenido en el SQL Editor de Supabase.
-
-## Flujo de registro
-
-1. Elegir formato: Copa, Chupito, Cerveza, Vino, Garrafa.
-2. Elegir alcohol base.
-3. Si el formato es Copa o Garrafa, elegir refresco de mezcla.
-4. Elegir si lleva hielo con controles grandes SI/NO.
-5. Pulsar **REGISTRAR**.
+- gastos totales
+- ahorro estimado
+- bebida más consumida
+- total de chupitos
+- resumen de trucos
+- resumen de lugares
+- lista de registros del periodo
+- detalle por registro con su desglose
 
 ## Estructura principal
 
 - `app/src/main/java/com/danieleivan/tajatracker/MainActivity.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/auth/AuthScreen.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/ui/auth/RegisterScreen.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/auth/AuthViewModel.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/data/repository/AuthRepository.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/home/DrunkWrappedHomeScreen.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/home/DrunkWrappedHomeViewModel.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/ui/home/DrinkDraft.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/ui/components/PremiumComponents.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/settings/SettingsScreen.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/stats/WrappedStatsScreen.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/stats/WrappedStatsViewModel.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/ui/stats/TrucosCalculator.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/data/model/ConsumicionInsert.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/data/model/ConsumicionRow.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/data/model/RegistroInsert.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/data/model/RegistroRow.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/data/repository/ConsumicionesRepository.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/data/remote/SupabaseProvider.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/ui/theme/Color.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/ui/theme/Type.kt`
+- `app/src/main/java/com/danieleivan/tajatracker/ui/theme/Shape.kt`
 - `app/src/main/java/com/danieleivan/tajatracker/ui/theme/Theme.kt`
 
-## Configuracion Supabase local
+## Base de datos Supabase
+
+### Migraciones actuales
+
+- `supabase/migrations/20260416_03_add_registros_and_hidalgo_malacopa.sql`
+- `supabase/migrations/20260421_04_auth_username_split_flow.sql`
+- `supabase/migrations/20260421_05_update_my_username_function.sql`
+
+### Tablas y piezas principales
+
+- `consumiciones`
+  - consumiciones individuales
+  - relación con `registro_id`
+  - lugar y fecha del consumo
+- `registros`
+  - sesión/noche completa
+  - lugar
+  - fecha
+  - cubatas Hidalgo totales
+  - vómitos totales
+- `usuarios`
+  - perfil de usuario
+  - email
+  - username único
+  - display name
+
+## Flujo de registro
+
+1. El usuario elige el formato de bebida.
+2. Elige cantidad.
+3. Si aplica, selecciona alcohol base, mezcla y hielo.
+4. Puede marcar qué cubatas son Hidalgo.
+5. Indica lugar y fecha del registro.
+6. Ve un resumen previo antes de guardar.
+7. Confirma el registro y se guarda en Supabase.
+
+## Flujo de login
+
+1. El usuario entra con su **usuario** y contraseña.
+2. La app resuelve el email asociado en `usuarios`.
+3. Supabase Auth inicia sesión con email/password por debajo.
+4. La sesión queda guardada y se restaura automáticamente en futuras aperturas.
+
+## Configuración local
 
 En `local.properties`:
 
@@ -87,17 +163,32 @@ SUPABASE_DB_NAME=postgres
 SUPABASE_DB_USER=postgres.rmzjdpnbczkvuyxshpjh
 ```
 
-La app inserta en la tabla `consumiciones` usando el SDK de Supabase Kotlin (PostgREST).
+## Aplicar migraciones
 
-## Ejecutar tests rapidos
-
-```powershell
-.\gradlew.bat :app:testDebugUnitTest
-```
-
-## Ejecutar app
+Si usas Supabase CLI:
 
 ```powershell
-.\gradlew.bat :app:assembleDebug
+supabase db push
 ```
 
+Si prefieres hacerlo manualmente, copia los SQL de `supabase/migrations/` en el SQL Editor de Supabase en el orden correcto.
+
+## Ejecutar tests rápidos
+
+```powershell
+.
+gradlew.bat :app:testDebugUnitTest
+```
+
+## Compilar la app
+
+```powershell
+.
+gradlew.bat :app:assembleDebug
+```
+
+## Notas
+
+- La app está orientada a uso real con pantalla oscura obligatoria.
+- El estilo visual está pensado para verse premium sin parecer un dashboard genérico.
+- Si quieres adaptar más pantallas, la base visual ya está preparada para seguir creciendo.
