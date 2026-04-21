@@ -15,9 +15,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -25,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -33,6 +34,9 @@ import androidx.compose.ui.unit.dp
 fun SettingsScreen(
     onBack: () -> Unit,
     onSignOut: () -> Unit = {},
+    currentUsername: String? = null,
+    onRefreshAccountData: () -> Unit = {},
+    onUpdateUsername: (String) -> Unit = {},
     isAuthActionLoading: Boolean = false,
     authErrorMessage: String? = null,
     authInfoMessage: String? = null
@@ -43,8 +47,19 @@ fun SettingsScreen(
     var hydrationIntervalIndex by rememberSaveable { mutableIntStateOf(1) }
     var clearDraftOnExit by rememberSaveable { mutableStateOf(true) }
     var showSignOutDialog by rememberSaveable { mutableStateOf(false) }
+    var usernameDraft by rememberSaveable { mutableStateOf("") }
 
     val intervals = listOf(30, 45, 60)
+
+    LaunchedEffect(Unit) {
+        onRefreshAccountData()
+    }
+
+    LaunchedEffect(currentUsername) {
+        if (!currentUsername.isNullOrBlank()) {
+            usernameDraft = currentUsername
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -164,6 +179,54 @@ fun SettingsScreen(
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Nombre de usuario",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = usernameDraft,
+                    onValueChange = { usernameDraft = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Usuario") },
+                    singleLine = true,
+                    enabled = !isAuthActionLoading
+                )
+
+                Button(
+                    onClick = { onUpdateUsername(usernameDraft) },
+                    enabled = !isAuthActionLoading && usernameDraft.isNotBlank() && usernameDraft != (currentUsername ?: ""),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 58.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        text = if (isAuthActionLoading) "ACTUALIZANDO..." else "GUARDAR USUARIO",
+                        style = MaterialTheme.typography.labelLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
 
         Button(
             onClick = { showSignOutDialog = true },

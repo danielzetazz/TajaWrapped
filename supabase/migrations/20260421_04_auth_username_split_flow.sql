@@ -21,6 +21,15 @@ update public.usuarios
 set username = lower(split_part(coalesce(email, id::text), '@', 1))
 where username is null or btrim(username::text) = '';
 
+-- Backfill de display_name para filas antiguas sin valor.
+update public.usuarios
+set display_name = coalesce(
+    nullif(btrim(display_name), ''),
+    nullif(btrim(username::text), ''),
+    lower(split_part(coalesce(email, id::text), '@', 1))
+)
+where display_name is null or btrim(display_name) = '';
+
 create unique index if not exists usuarios_username_unique_idx
     on public.usuarios (lower(username::text));
 
@@ -35,10 +44,17 @@ security definer
 set search_path = public
 as $$
 begin
-    insert into public.usuarios (id, email, username)
+    -- Asegura que display_name nunca se quede nulo para filas nuevas.
+    -- Si auth no trae metadata, usamos username o la parte local del email.
+    insert into public.usuarios (id, email, display_name, username)
     values (
         new.id,
         new.email,
+        coalesce(
+            nullif(new.raw_user_meta_data ->> 'display_name', ''),
+            nullif(new.raw_user_meta_data ->> 'username', ''),
+            lower(split_part(new.email, '@', 1))
+        ),
         coalesce(
             nullif(lower(new.raw_user_meta_data ->> 'username'), ''),
             lower(split_part(new.email, '@', 1))
@@ -46,6 +62,7 @@ begin
     )
     on conflict (id) do update
     set email = excluded.email,
+        display_name = coalesce(public.usuarios.display_name, excluded.display_name),
         username = coalesce(excluded.username, public.usuarios.username);
 
     return new;

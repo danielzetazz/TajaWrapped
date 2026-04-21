@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 data class AuthUiState(
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
+    val accountUsername: String? = null,
     val errorMessage: String? = null,
     val infoMessage: String? = null
 )
@@ -26,6 +27,26 @@ class AuthViewModel(
         AuthUiState(isAuthenticated = repository.hasActiveSession())
     )
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    init {
+        observeSessionState()
+    }
+
+    private fun observeSessionState() {
+        viewModelScope.launch {
+            repository.observeSessionAuthenticated().collect { isAuthenticated ->
+                _uiState.update { state ->
+                    state.copy(isAuthenticated = isAuthenticated)
+                }
+
+                if (isAuthenticated) {
+                    loadCurrentUsername(silent = true)
+                } else {
+                    _uiState.update { state -> state.copy(accountUsername = null) }
+                }
+            }
+        }
+    }
 
     fun signIn(username: String, password: String) {
         if (username.isBlank() || password.isBlank()) {
@@ -124,6 +145,61 @@ class AuthViewModel(
 
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, infoMessage = null) }
+    }
+
+    fun loadCurrentUsername(silent: Boolean = false) {
+        viewModelScope.launch {
+            if (!silent) {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            }
+
+            repository.getCurrentUsername()
+                .onSuccess { username ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            accountUsername = username
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "No se pudo cargar el usuario"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun updateUsername(newUsername: String) {
+        if (newUsername.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "El usuario no puede estar vacío") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.updateUsername(newUsername)
+                .onSuccess { updatedUsername ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            accountUsername = updatedUsername,
+                            infoMessage = "Usuario actualizado"
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "No se pudo actualizar el usuario"
+                        )
+                    }
+                }
+        }
     }
 
     fun signOut(onSuccess: () -> Unit = {}) {

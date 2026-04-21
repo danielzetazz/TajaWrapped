@@ -84,7 +84,10 @@ class MainActivity : ComponentActivity() {
                     AppScreen.MENU -> MainMenuScreen(
                         onNewRecord = { currentScreen = AppScreen.RECORD },
                         onOpenStats = { currentScreen = AppScreen.STATS },
-                        onOpenSettings = { currentScreen = AppScreen.SETTINGS }
+                        onOpenSettings = {
+                            authViewModel.loadCurrentUsername(silent = true)
+                            currentScreen = AppScreen.SETTINGS
+                        }
                     )
 
                     AppScreen.RECORD -> DrunkWrappedHomeScreen(
@@ -105,6 +108,9 @@ class MainActivity : ComponentActivity() {
                                 currentScreen = AppScreen.AUTH_LOGIN
                             }
                         },
+                        currentUsername = authUiState.accountUsername,
+                        onRefreshAccountData = { authViewModel.loadCurrentUsername(silent = true) },
+                        onUpdateUsername = { authViewModel.updateUsername(it) },
                         isAuthActionLoading = authUiState.isLoading,
                         authErrorMessage = authUiState.errorMessage,
                         authInfoMessage = authUiState.infoMessage
