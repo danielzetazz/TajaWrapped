@@ -27,15 +27,15 @@ class AuthViewModel(
     )
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    fun signIn(email: String, password: String) {
-        if (email.isBlank() || password.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Email y contraseña son obligatorios") }
+    fun signIn(username: String, password: String) {
+        if (username.isBlank() || password.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Usuario y contraseña son obligatorios") }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.signIn(email.trim(), password)
+            repository.signInWithUsername(username.trim(), password)
                 .onSuccess {
                     _uiState.update {
                         it.copy(
@@ -58,15 +58,20 @@ class AuthViewModel(
         }
     }
 
-    fun signUp(email: String, password: String) {
-        if (email.isBlank() || password.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Email y contraseña son obligatorios") }
+    fun signUp(email: String, username: String, password: String) {
+        if (email.isBlank() || username.isBlank() || password.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Email, usuario y contraseña son obligatorios") }
+            return
+        }
+
+        if (username.length < 3) {
+            _uiState.update { it.copy(errorMessage = "El usuario debe tener al menos 3 caracteres") }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.signUp(email.trim(), password)
+            repository.signUpWithUsername(email.trim(), username.trim(), password)
                 .onSuccess {
                     val hasSession = repository.hasActiveSession()
                     _uiState.update {

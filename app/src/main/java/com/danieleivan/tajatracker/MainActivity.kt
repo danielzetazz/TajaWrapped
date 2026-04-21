@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.danieleivan.tajatracker.ui.auth.AuthScreen
 import com.danieleivan.tajatracker.ui.auth.AuthViewModel
 import com.danieleivan.tajatracker.ui.auth.AuthViewModelFactory
+import com.danieleivan.tajatracker.ui.auth.RegisterScreen
 import com.danieleivan.tajatracker.ui.home.MainMenuScreen
 import com.danieleivan.tajatracker.ui.home.DrunkWrappedHomeScreen
 import com.danieleivan.tajatracker.ui.home.DrunkWrappedHomeViewModel
@@ -24,7 +25,8 @@ import com.danieleivan.tajatracker.ui.stats.WrappedStatsViewModelFactory
 import com.danieleivan.tajatracker.ui.theme.DrunkWrappedTheme
 
 private enum class AppScreen {
-    AUTH,
+    AUTH_LOGIN,
+    AUTH_REGISTER,
     MENU,
     RECORD,
     STATS,
@@ -47,7 +49,7 @@ class MainActivity : ComponentActivity() {
                         if (authViewModel.uiState.value.isAuthenticated) {
                             AppScreen.MENU
                         } else {
-                            AppScreen.AUTH
+                            AppScreen.AUTH_LOGIN
                         }
                     )
                 }
@@ -61,9 +63,22 @@ class MainActivity : ComponentActivity() {
                 )
 
                 when (currentScreen) {
-                    AppScreen.AUTH -> AuthScreen(
+                    AppScreen.AUTH_LOGIN -> AuthScreen(
                         viewModel = authViewModel,
-                        onAuthenticated = { currentScreen = AppScreen.MENU }
+                        onAuthenticated = { currentScreen = AppScreen.MENU },
+                        onOpenRegister = {
+                            authViewModel.clearMessages()
+                            currentScreen = AppScreen.AUTH_REGISTER
+                        }
+                    )
+
+                    AppScreen.AUTH_REGISTER -> RegisterScreen(
+                        viewModel = authViewModel,
+                        onAuthenticated = { currentScreen = AppScreen.MENU },
+                        onBackToLogin = {
+                            authViewModel.clearMessages()
+                            currentScreen = AppScreen.AUTH_LOGIN
+                        }
                     )
 
                     AppScreen.MENU -> MainMenuScreen(
@@ -87,7 +102,7 @@ class MainActivity : ComponentActivity() {
                         onBack = { currentScreen = AppScreen.MENU },
                         onSignOut = {
                             authViewModel.signOut {
-                                currentScreen = AppScreen.AUTH
+                                currentScreen = AppScreen.AUTH_LOGIN
                             }
                         },
                         isAuthActionLoading = authUiState.isLoading,

@@ -30,12 +30,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun AuthScreen(
+fun RegisterScreen(
     viewModel: AuthViewModel,
     onAuthenticated: () -> Unit,
-    onOpenRegister: () -> Unit
+    onBackToLogin: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var email by rememberSaveable { mutableStateOf("") }
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
@@ -56,7 +57,7 @@ fun AuthScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Acceso privado",
+                text = "Crear cuenta",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
@@ -64,7 +65,7 @@ fun AuthScreen(
             )
 
             Text(
-                text = "Tu noche, bajo control.",
+                text = "Acceso premium en segundos.",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
@@ -81,6 +82,17 @@ fun AuthScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            viewModel.clearMessages()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Correo") },
+                        singleLine = true
+                    )
+
                     OutlinedTextField(
                         value = username,
                         onValueChange = {
@@ -105,7 +117,7 @@ fun AuthScreen(
                     )
 
                     Button(
-                        onClick = { viewModel.signIn(username, password) },
+                        onClick = { viewModel.signUp(email, username, password) },
                         enabled = !uiState.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -116,7 +128,7 @@ fun AuthScreen(
                         )
                     ) {
                         Text(
-                            text = if (uiState.isLoading) "ACCEDIENDO..." else "INICIAR SESIÓN",
+                            text = if (uiState.isLoading) "CREANDO CUENTA..." else "CREAR CUENTA",
                             style = MaterialTheme.typography.labelLarge,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
@@ -124,31 +136,23 @@ fun AuthScreen(
                     }
 
                     Button(
-                        onClick = onOpenRegister,
+                        onClick = onBackToLogin,
                         enabled = !uiState.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 62.dp),
+                            .heightIn(min = 58.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.onSecondary
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     ) {
                         Text(
-                            text = "CREAR CUENTA",
+                            text = "YA TENGO CUENTA",
                             style = MaterialTheme.typography.labelLarge,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-
-                    Text(
-                        text = "El acceso se realiza con tu nombre de usuario.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
 
                     if (uiState.errorMessage != null) {
                         Text(
