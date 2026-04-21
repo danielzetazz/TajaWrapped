@@ -5,14 +5,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -28,6 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.danieleivan.tajatracker.ui.components.AppButtonTone
+import com.danieleivan.tajatracker.ui.components.PremiumButton
+import com.danieleivan.tajatracker.ui.components.PremiumCard
 
 @Composable
 fun RegisterScreen(
@@ -53,8 +51,8 @@ fun RegisterScreen(
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 22.dp, vertical = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
                 text = "Crear cuenta",
@@ -72,15 +70,10 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
+            PremiumCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedTextField(
                         value = email,
@@ -116,43 +109,25 @@ fun RegisterScreen(
                         visualTransformation = PasswordVisualTransformation()
                     )
 
-                    Button(
+                    PremiumButton(
+                        text = if (uiState.isLoading) "CREANDO CUENTA..." else "CREAR CUENTA",
                         onClick = { viewModel.signUp(email, username, password) },
                         enabled = !uiState.isLoading,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 64.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Text(
-                            text = if (uiState.isLoading) "CREANDO CUENTA..." else "CREAR CUENTA",
-                            style = MaterialTheme.typography.labelLarge,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                            .fillMaxWidth(),
+                        minHeight = 60,
+                        tone = AppButtonTone.Primary
+                    )
 
-                    Button(
+                    PremiumButton(
+                        text = "YA TENGO CUENTA",
                         onClick = onBackToLogin,
                         enabled = !uiState.isLoading,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 58.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    ) {
-                        Text(
-                            text = "YA TENGO CUENTA",
-                            style = MaterialTheme.typography.labelLarge,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                            .fillMaxWidth(),
+                        minHeight = 56,
+                        tone = AppButtonTone.Tertiary
+                    )
 
                     if (uiState.errorMessage != null) {
                         Text(

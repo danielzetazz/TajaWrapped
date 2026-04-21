@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 import java.util.UUID
 
 data class SaveConsumicionUiState(
@@ -53,14 +56,16 @@ class DrunkWrappedHomeViewModel(
                 )
             ),
             lugarNombre = lugarNombre.orEmpty(),
-            vomitosTotal = 0
+            vomitosTotal = 0,
+            fechaRegistro = OffsetDateTime.now().toString()
         )
     }
 
     fun guardarRegistro(
         registro: List<DrinkDraft>,
         lugarNombre: String,
-        vomitosTotal: Int
+        vomitosTotal: Int,
+        fechaRegistro: String = OffsetDateTime.now().toString()
     ) {
         viewModelScope.launch {
             _saveState.value = SaveConsumicionUiState(isSaving = true)
@@ -80,12 +85,12 @@ class DrunkWrappedHomeViewModel(
                 return@launch
             }
 
-            val fechaRegistro = OffsetDateTime.now().toString()
+            val fechaRegistroNormalizada = normalizarFechaRegistro(fechaRegistro)
             val registroId = UUID.randomUUID().toString()
             val hidalgoTotal = registro.sumOf { it.hidalgoCount.coerceAtLeast(0) }
             val registroPayload = RegistroInsert(
                 id = registroId,
-                fechaHora = fechaRegistro,
+                fechaHora = fechaRegistroNormalizada,
                 lugarNombre = lugarNormalizado,
                 cubatasHidalgoTotal = hidalgoTotal,
                 vomitosTotal = vomitosTotal.coerceAtLeast(0)
@@ -107,7 +112,7 @@ class DrunkWrappedHomeViewModel(
                 val valorEstimado = if (item.esRobado) item.precioCapturado else null
 
                 val payload = ConsumicionInsert(
-                    fechaHora = fechaRegistro,
+                    fechaHora = fechaRegistroNormalizada,
                     registroId = registroId,
                     lugarNombre = lugarNormalizado,
                     formato = item.formato,
@@ -138,6 +143,25 @@ class DrunkWrappedHomeViewModel(
             _saveState.update {
                 SaveConsumicionUiState(isSuccess = true)
             }
+        }
+    }
+
+    private fun normalizarFechaRegistro(fechaRegistro: String): String {
+        val input = fechaRegistro.trim()
+        if (input.isBlank()) return OffsetDateTime.now().toString()
+
+        runCatching { OffsetDateTime.parse(input).toString() }
+            .getOrNull()
+            ?.let { return it }
+
+        return runCatching {
+            LocalDate.parse(input)
+                .atTime(LocalTime.now())
+                .atZone(ZoneId.systemDefault())
+                .toOffsetDateTime()
+                .toString()
+        }.getOrElse {
+            OffsetDateTime.now().toString()
         }
     }
 

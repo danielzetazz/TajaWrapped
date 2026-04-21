@@ -54,6 +54,8 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                var confirmBeforeRegister by rememberSaveable { mutableStateOf(true) }
+
                 val homeViewModel: DrunkWrappedHomeViewModel = viewModel(
                     factory = DrunkWrappedHomeViewModelFactory()
                 )
@@ -92,6 +94,7 @@ class MainActivity : ComponentActivity() {
 
                     AppScreen.RECORD -> DrunkWrappedHomeScreen(
                         viewModel = homeViewModel,
+                        confirmBeforeRegister = confirmBeforeRegister,
                         onBackToMenu = { currentScreen = AppScreen.MENU },
                         onOpenStats = { currentScreen = AppScreen.STATS }
                     )
@@ -109,6 +112,8 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         currentUsername = authUiState.accountUsername,
+                        confirmBeforeRegister = confirmBeforeRegister,
+                        onConfirmBeforeRegisterChange = { confirmBeforeRegister = it },
                         onRefreshAccountData = { authViewModel.loadCurrentUsername(silent = true) },
                         onUpdateUsername = { authViewModel.updateUsername(it) },
                         isAuthActionLoading = authUiState.isLoading,
