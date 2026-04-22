@@ -56,7 +56,8 @@ class DrunkWrappedHomeViewModel(
         precioCapturado: Double,
         esRobado: Boolean,
         cantidad: Int = 1,
-        lugarNombre: String? = null
+        lugarNombre: String? = null,
+        fotoUri: String? = null
     ) {
         guardarRegistro(
             listOf(
@@ -73,6 +74,7 @@ class DrunkWrappedHomeViewModel(
             ),
             lugarNombre = lugarNombre.orEmpty(),
             vomitosTotal = 0,
+            fotoUri = fotoUri,
             fechaRegistro = OffsetDateTime.now().toString()
         )
     }
@@ -81,6 +83,7 @@ class DrunkWrappedHomeViewModel(
         registro: List<DrinkDraft>,
         lugarNombre: String,
         vomitosTotal: Int,
+        fotoUri: String? = null,
         fechaRegistro: String = OffsetDateTime.now().toString()
     ) {
         viewModelScope.launch {
@@ -108,6 +111,7 @@ class DrunkWrappedHomeViewModel(
                 id = registroId,
                 fechaHora = fechaRegistroNormalizada,
                 lugarNombre = lugarNormalizado,
+                fotoUri = fotoUri?.trim()?.ifBlank { null },
                 cubatasHidalgoTotal = hidalgoTotal,
                 vomitosTotal = vomitosTotal.coerceAtLeast(0)
             )

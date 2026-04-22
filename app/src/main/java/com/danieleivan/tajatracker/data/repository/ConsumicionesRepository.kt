@@ -44,6 +44,7 @@ class ConsumicionesRepository(
                     id = obj.readString("id").orEmpty(),
                     fechaHora = obj.readString("fecha_hora"),
                     lugarNombre = obj.readString("lugar_nombre").orEmpty(),
+                    fotoUri = obj.readString("foto_uri"),
                     cubatasHidalgoTotal = obj.readInt("cubatas_hidalgo_total") ?: 0,
                     vomitosTotal = obj.readInt("vomitos_total") ?: 0
                 )
