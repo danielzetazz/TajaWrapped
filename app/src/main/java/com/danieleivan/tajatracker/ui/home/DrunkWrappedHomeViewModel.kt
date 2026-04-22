@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.danieleivan.tajatracker.data.model.ConsumicionInsert
+import com.danieleivan.tajatracker.data.model.LugarInsert
+import com.danieleivan.tajatracker.data.model.LugarRow
 import com.danieleivan.tajatracker.data.model.RegistroInsert
 import com.danieleivan.tajatracker.data.remote.SupabaseProvider
 import com.danieleivan.tajatracker.data.repository.ConsumicionesRepository
@@ -24,12 +26,26 @@ data class SaveConsumicionUiState(
     val errorMessage: String? = null
 )
 
+data class PlacesUiState(
+    val isLoading: Boolean = true,
+    val errorMessage: String? = null,
+    val infoMessage: String? = null,
+    val places: List<LugarRow> = emptyList()
+)
+
 class DrunkWrappedHomeViewModel(
     private val repository: ConsumicionesRepository
 ) : ViewModel() {
 
     private val _saveState = MutableStateFlow(SaveConsumicionUiState())
     val saveState: StateFlow<SaveConsumicionUiState> = _saveState.asStateFlow()
+
+    private val _placesState = MutableStateFlow(PlacesUiState())
+    val placesState: StateFlow<PlacesUiState> = _placesState.asStateFlow()
+
+    init {
+        loadPlaces()
+    }
 
 
     fun guardarConsumicion(
@@ -146,6 +162,108 @@ class DrunkWrappedHomeViewModel(
         }
     }
 
+    fun loadPlaces() {
+        viewModelScope.launch {
+            _placesState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.getLugares()
+                .onSuccess { places ->
+                    _placesState.update {
+                        it.copy(
+                            isLoading = false,
+                            places = places,
+                            errorMessage = null
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _placesState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "No se pudieron cargar los lugares"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun addPlace(nombre: String, onSuccess: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            val normalized = normalizePlaceName(nombre)
+            if (normalized.isBlank()) {
+                _placesState.update { it.copy(errorMessage = "Introduce un nombre de lugar") }
+                return@launch
+            }
+
+            val alreadyExists = _placesState.value.places.any {
+                normalizePlaceName(it.nombre) == normalized
+            }
+
+            _placesState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.insertLugar(
+                LugarInsert(
+                    nombre = nombre.trim(),
+                    nombreNormalizado = normalized
+                )
+            ).onSuccess {
+                repository.getLugares()
+                    .onSuccess { places ->
+                        val canonicalName = places.firstOrNull {
+                            normalizePlaceName(it.nombre) == normalized
+                        }?.nombre ?: nombre.trim()
+
+                        _placesState.update {
+                            it.copy(
+                                isLoading = false,
+                                places = places,
+                                errorMessage = null,
+                                infoMessage = if (alreadyExists) {
+                                    "Lugar ya existente reutilizado"
+                                } else {
+                                    "Lugar añadido a la lista"
+                                }
+                            )
+                        }
+                        onSuccess(canonicalName)
+                    }
+                    .onFailure { error ->
+                        _placesState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = error.message ?: "No se pudo refrescar la lista de lugares"
+                            )
+                        }
+                    }
+            }.onFailure { error ->
+                _placesState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "No se pudo añadir el lugar"
+                    )
+                }
+            }
+        }
+    }
+
+    fun deletePlace(lugarId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _placesState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.deleteLugar(lugarId)
+                .onSuccess {
+                    loadPlaces()
+                    onSuccess()
+                    _placesState.update { it.copy(infoMessage = "Lugar eliminado") }
+                }
+                .onFailure { error ->
+                    _placesState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "No se pudo eliminar el lugar"
+                        )
+                    }
+                }
+        }
+    }
+
     private fun normalizarFechaRegistro(fechaRegistro: String): String {
         val input = fechaRegistro.trim()
         if (input.isBlank()) return OffsetDateTime.now().toString()
@@ -163,6 +281,12 @@ class DrunkWrappedHomeViewModel(
         }.getOrElse {
             OffsetDateTime.now().toString()
         }
+    }
+
+    private fun normalizePlaceName(value: String): String {
+        return value.trim()
+            .replace(Regex("\\s+"), " ")
+            .lowercase()
     }
 
     fun limpiarEstadoGuardado() {

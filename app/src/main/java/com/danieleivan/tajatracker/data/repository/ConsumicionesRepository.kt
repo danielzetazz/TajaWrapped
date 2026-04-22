@@ -2,12 +2,17 @@ package com.danieleivan.tajatracker.data.repository
 
 import com.danieleivan.tajatracker.data.model.ConsumicionInsert
 import com.danieleivan.tajatracker.data.model.ConsumicionRow
+import com.danieleivan.tajatracker.data.model.LugarInsert
+import com.danieleivan.tajatracker.data.model.LugarRow
 import com.danieleivan.tajatracker.data.model.RegistroInsert
 import com.danieleivan.tajatracker.data.model.RegistroRow
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -69,6 +74,42 @@ class ConsumicionesRepository(
                     valorEstimado = obj.readDouble("valor_estimado")
                 )
             }
+    }
+
+    suspend fun getLugares(): Result<List<LugarRow>> = runCatching {
+        val rawJson = supabaseClient
+            .from("lugares")
+            .select()
+            .data
+
+        Json.parseToJsonElement(rawJson)
+            .jsonArray
+            .map { item ->
+                val obj = item.jsonObject
+                LugarRow(
+                    id = obj.readString("id").orEmpty(),
+                    nombre = obj.readString("nombre").orEmpty(),
+                    nombreNormalizado = obj.readString("nombre_normalizado")
+                )
+            }
+    }
+
+    suspend fun insertLugar(lugar: LugarInsert): Result<Unit> = runCatching {
+        supabaseClient.from("lugares").upsert(lugar) {
+            onConflict = "usuario_id,nombre_normalizado"
+            ignoreDuplicates = true
+        }
+        Unit
+    }
+
+    suspend fun deleteLugar(lugarId: String): Result<Unit> = runCatching {
+        supabaseClient.postgrest.rpc(
+            function = "delete_my_lugar",
+            parameters = buildJsonObject {
+                put("p_id", JsonPrimitive(lugarId))
+            }
+        )
+        Unit
     }
 }
 
