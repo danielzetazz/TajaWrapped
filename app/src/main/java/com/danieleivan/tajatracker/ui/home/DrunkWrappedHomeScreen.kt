@@ -1,5 +1,13 @@
+@file:Suppress("UnusedImport")
+
 package com.danieleivan.tajatracker.ui.home
 
+import android.Manifest
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.Image
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -22,6 +31,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -30,19 +40,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
-import androidx.compose.foundation.clickable
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import java.io.File
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -86,24 +98,90 @@ fun DrunkWrappedHomeScreen(
     onBackToMenu: () -> Unit = {},
     onOpenStats: () -> Unit = {}
 ) {
-    var selectedFormat by remember { mutableStateOf<DrinkFormat?>(null) }
-    var selectedQuantity by remember { mutableStateOf(1) }
-    var selectedAlcohol by remember { mutableStateOf<BaseAlcohol?>(null) }
-    var selectedMixer by remember { mutableStateOf<Mixer?>(null) }
-    var withIce by remember { mutableStateOf<Boolean?>(null) }
-    var priceInput by remember { mutableStateOf("0") }
-    var selectedPlaceName by rememberSaveable { mutableStateOf("") }
-    var newPlaceInput by rememberSaveable { mutableStateOf("") }
-    var showPlacesManagerDialog by rememberSaveable { mutableStateOf(false) }
-    var selectedRegisterDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
-    var vomitosCount by remember { mutableStateOf(0) }
-    var isRobbed by remember { mutableStateOf(false) }
-    var lastSaved by remember { mutableStateOf<String?>(null) }
-    var draftedDrinks by remember { mutableStateOf(emptyList<DrinkDraft>()) }
-    var showSummaryDialog by remember { mutableStateOf(false) }
-    var showRegisterConfirmationDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    var selectedFormat by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<DrinkFormat?>(null) }
+    var selectedQuantity by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(1) }
+    var selectedAlcohol by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<BaseAlcohol?>(null) }
+    var selectedMixer by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Mixer?>(null) }
+    var withIce by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Boolean?>(null) }
+    var priceInput by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("0") }
+    var selectedPlaceName by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
+    var newPlaceInput by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
+    var showPlacesManagerDialog by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    var selectedPhotoPath by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var photoInfoMessage by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var selectedRegisterDate by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(LocalDate.now().toString()) }
+    var vomitosCount by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(0) }
+    var isRobbed by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var lastSaved by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var draftedDrinks by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(emptyList<DrinkDraft>()) }
+    var showSummaryDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showRegisterConfirmationDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     val saveState by viewModel.saveState.collectAsState()
     val placesState by viewModel.placesState.collectAsState()
+
+    val pickPhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        val path = uri?.let { RegistroPhotoStorage.copyFromUri(context, it) }
+        if (path != null) {
+            selectedPhotoPath = path
+            photoInfoMessage = "Foto añadida al registro"
+        } else {
+            photoInfoMessage = "No se pudo cargar la foto"
+        }
+    }
+
+    val cameraPreviewLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        val path = bitmap?.let { RegistroPhotoStorage.saveBitmap(context, it) }
+        if (path != null) {
+            selectedPhotoPath = path
+            photoInfoMessage = "Foto capturada"
+        } else {
+            photoInfoMessage = "No se pudo capturar la foto"
+        }
+    }
+
+    val galleryPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            pickPhotoLauncher.launch("image/*")
+        } else {
+            photoInfoMessage = "Permiso de galería denegado"
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            cameraPreviewLauncher.launch(null)
+        } else {
+            photoInfoMessage = "Permiso de cámara denegado"
+        }
+    }
+
+    fun openGalleryPicker() {
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
+                pickPhotoLauncher.launch("image/*")
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+                pickPhotoLauncher.launch("image/*")
+            }
+            else -> {
+                galleryPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+        }
+    }
+
+    fun openCameraCapture() {
+        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+    }
 
     LaunchedEffect(placesState.places) {
         if (selectedPlaceName.isBlank() && placesState.places.isNotEmpty()) {
@@ -123,6 +201,8 @@ fun DrunkWrappedHomeScreen(
             priceInput = "0"
             selectedPlaceName = ""
             newPlaceInput = ""
+            selectedPhotoPath = null
+            photoInfoMessage = null
             selectedRegisterDate = LocalDate.now().toString()
             vomitosCount = 0
             isRobbed = false
@@ -251,6 +331,51 @@ fun DrunkWrappedHomeScreen(
                     onPlaceSelected = { selectedPlaceName = it },
                     onManagePlaces = { showPlacesManagerDialog = true }
                 )
+
+                SectionTitle("Foto de recuerdo")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = { openGalleryPicker() },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        )
+                    ) {
+                        Text("GALERIA", textAlign = TextAlign.Center)
+                    }
+                    Button(
+                        onClick = { openCameraCapture() },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Text("CAMARA", textAlign = TextAlign.Center)
+                    }
+                }
+
+                if (selectedPhotoPath != null) {
+                    PhotoPreviewCard(
+                        photoPath = selectedPhotoPath.orEmpty(),
+                        onRemove = {
+                            selectedPhotoPath = null
+                            photoInfoMessage = "Foto eliminada del borrador"
+                        }
+                    )
+                }
+
+                if (photoInfoMessage != null) {
+                    Text(
+                        text = photoInfoMessage.orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             if (selectedFormat?.requiresAlcoholBase == true) {
@@ -501,6 +626,7 @@ fun DrunkWrappedHomeScreen(
                                 draftedDrinks,
                                 selectedPlaceName,
                                 vomitosCount,
+                                selectedPhotoPath,
                                 selectedRegisterDate
                             )
                         }
@@ -533,6 +659,7 @@ fun DrunkWrappedHomeScreen(
                                     draftedDrinks,
                                     selectedPlaceName,
                                     vomitosCount,
+                                    selectedPhotoPath,
                                     selectedRegisterDate
                                 )
                             }
@@ -586,12 +713,19 @@ fun DrunkWrappedHomeScreen(
                 SummaryDialog(
                     draftedDrinks = draftedDrinks,
                     lugarNombre = selectedPlaceName,
+                    fotoUri = selectedPhotoPath,
                     fechaRegistro = selectedRegisterDate,
                     vomitosTotal = vomitosCount,
                     canConfirm = selectedPlaceName.trim().isNotEmpty() && isValidDateInput(selectedRegisterDate),
                     onDismiss = { showSummaryDialog = false },
                     onConfirm = {
-                        viewModel.guardarRegistro(draftedDrinks, selectedPlaceName, vomitosCount, selectedRegisterDate)
+                        viewModel.guardarRegistro(
+                            draftedDrinks,
+                            selectedPlaceName,
+                            vomitosCount,
+                            selectedPhotoPath,
+                            selectedRegisterDate
+                        )
                         showSummaryDialog = false
                     }
                 )
@@ -644,6 +778,7 @@ private fun formatMoney(value: Double): String = String.format(Locale.US, "%.2f"
 private fun SummaryDialog(
     draftedDrinks: List<DrinkDraft>,
     lugarNombre: String,
+    fotoUri: String?,
     fechaRegistro: String,
     vomitosTotal: Int,
     canConfirm: Boolean,
@@ -709,6 +844,11 @@ private fun SummaryDialog(
                     text = "Fecha: ${formatRegistroDateLabel(fechaRegistro)}",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = if (fotoUri.isNullOrBlank()) "Foto de recuerdo: no añadida" else "Foto de recuerdo: añadida",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "Cubatas Hidalgo: $totalHidalgos",
@@ -1053,6 +1193,61 @@ private fun PlacesManagerDialog(
             }
         }
     )
+}
+
+@Composable
+private fun PhotoPreviewCard(
+    photoPath: String,
+    onRemove: () -> Unit
+) {
+    val bitmap = androidx.compose.runtime.remember(photoPath) { loadLocalBitmap(photoPath) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Tu foto de recuerdo",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Foto de recuerdo seleccionada",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 180.dp),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            } else {
+                Text(
+                    text = "La foto se guardó, pero no se pudo previsualizar en este dispositivo.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            TextButton(onClick = onRemove) {
+                Text("Quitar foto")
+            }
+        }
+    }
+}
+
+private fun loadLocalBitmap(photoPath: String): android.graphics.Bitmap? {
+    if (photoPath.isBlank()) return null
+    val file = File(photoPath)
+    if (!file.exists()) return null
+    return runCatching { BitmapFactory.decodeFile(file.absolutePath) }.getOrNull()
 }
 
 @Composable

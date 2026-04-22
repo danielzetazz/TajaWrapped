@@ -55,6 +55,7 @@ data class RegistroResumenUi(
     val id: String,
     val fechaTexto: String,
     val lugarNombre: String,
+    val fotoUri: String? = null,
     val cubatasHidalgoTotal: Int,
     val vomitosTotal: Int,
     val totalConsumiciones: Int,
@@ -242,6 +243,7 @@ class WrappedStatsViewModel(
                         ?.format(dateFormatter)
                         ?: registro.fechaHora.orEmpty().ifBlank { "Sin fecha" },
                     lugarNombre = registro.lugarNombre.ifBlank { "Sin lugar" },
+                    fotoUri = registro.fotoUri,
                     cubatasHidalgoTotal = registro.cubatasHidalgoTotal,
                     vomitosTotal = registro.vomitosTotal,
                     totalConsumiciones = registroConsumiciones.size,

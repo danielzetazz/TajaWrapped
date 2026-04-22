@@ -8,6 +8,7 @@ data class RegistroInsert(
     @SerialName("id") val id: String,
     @SerialName("fecha_hora") val fechaHora: String,
     @SerialName("lugar_nombre") val lugarNombre: String,
+    @SerialName("foto_uri") val fotoUri: String? = null,
     @SerialName("cubatas_hidalgo_total") val cubatasHidalgoTotal: Int,
     @SerialName("vomitos_total") val vomitosTotal: Int
 )
