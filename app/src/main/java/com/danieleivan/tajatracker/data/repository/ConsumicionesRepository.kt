@@ -94,6 +94,28 @@ class ConsumicionesRepository(
             }
     }
 
+    suspend fun syncLugaresFromRegistros(): Result<Unit> = runCatching {
+        val registros = getRegistros().getOrThrow()
+        val lugaresExistentes = getLugares()
+            .getOrDefault(emptyList())
+            .map { normalizeLugarName(it.nombre) }
+            .toSet()
+
+        registros
+            .asSequence()
+            .mapNotNull { row ->
+                val nombre = row.lugarNombre?.trim().orEmpty()
+                if (nombre.isBlank()) return@mapNotNull null
+                LugarInsert(
+                    nombre = nombre,
+                    nombreNormalizado = normalizeLugarName(nombre)
+                )
+            }
+            .distinctBy { it.nombreNormalizado }
+            .filter { it.nombreNormalizado !in lugaresExistentes }
+            .forEach { insertLugar(it).getOrThrow() }
+    }
+
     suspend fun insertLugar(lugar: LugarInsert): Result<Unit> = runCatching {
         supabaseClient.from("lugares").upsert(lugar) {
             onConflict = "usuario_id,nombre_normalizado"
@@ -111,6 +133,10 @@ class ConsumicionesRepository(
         )
         Unit
     }
+}
+
+private fun normalizeLugarName(value: String): String {
+    return value.trim().replace(Regex("\\s+"), " ").lowercase()
 }
 
 private fun JsonObject.readString(key: String): String? {

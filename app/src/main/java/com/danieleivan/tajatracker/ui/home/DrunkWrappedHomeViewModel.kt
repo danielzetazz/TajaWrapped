@@ -165,21 +165,32 @@ class DrunkWrappedHomeViewModel(
     fun loadPlaces() {
         viewModelScope.launch {
             _placesState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.getLugares()
-                .onSuccess { places ->
-                    _placesState.update {
-                        it.copy(
-                            isLoading = false,
-                            places = places,
-                            errorMessage = null
-                        )
-                    }
+            repository.syncLugaresFromRegistros()
+                .onSuccess {
+                    repository.getLugares()
+                        .onSuccess { places ->
+                            _placesState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    places = places,
+                                    errorMessage = null
+                                )
+                            }
+                        }
+                        .onFailure { error ->
+                            _placesState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    errorMessage = error.message ?: "No se pudieron cargar los lugares"
+                                )
+                            }
+                        }
                 }
                 .onFailure { error ->
                     _placesState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.message ?: "No se pudieron cargar los lugares"
+                            errorMessage = error.message ?: "No se pudieron sincronizar los lugares"
                         )
                     }
                 }
