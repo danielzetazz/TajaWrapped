@@ -2,6 +2,7 @@ package com.danieleivan.tajatracker.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,16 +10,22 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -72,6 +80,7 @@ private enum class Mixer(val label: String) {
 fun DrunkWrappedHomeScreen(
     viewModel: DrunkWrappedHomeViewModel,
     confirmBeforeRegister: Boolean = true,
+    onRegistroGuardado: () -> Unit = {},
     onBackToMenu: () -> Unit = {},
     onOpenStats: () -> Unit = {}
 ) {
@@ -81,7 +90,9 @@ fun DrunkWrappedHomeScreen(
     var selectedMixer by remember { mutableStateOf<Mixer?>(null) }
     var withIce by remember { mutableStateOf<Boolean?>(null) }
     var priceInput by remember { mutableStateOf("0") }
-    var placeInput by remember { mutableStateOf("") }
+    var selectedPlaceName by rememberSaveable { mutableStateOf("") }
+    var newPlaceInput by rememberSaveable { mutableStateOf("") }
+    var showPlacesManagerDialog by rememberSaveable { mutableStateOf(false) }
     var selectedRegisterDate by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var vomitosCount by remember { mutableStateOf(0) }
     var isRobbed by remember { mutableStateOf(false) }
@@ -90,9 +101,17 @@ fun DrunkWrappedHomeScreen(
     var showSummaryDialog by remember { mutableStateOf(false) }
     var showRegisterConfirmationDialog by remember { mutableStateOf(false) }
     val saveState by viewModel.saveState.collectAsState()
+    val placesState by viewModel.placesState.collectAsState()
+
+    LaunchedEffect(placesState.places) {
+        if (selectedPlaceName.isBlank() && placesState.places.isNotEmpty()) {
+            selectedPlaceName = placesState.places.first().nombre
+        }
+    }
 
     LaunchedEffect(saveState.isSuccess) {
         if (saveState.isSuccess) {
+            onRegistroGuardado()
             draftedDrinks = emptyList()
             selectedFormat = null
             selectedQuantity = 1
@@ -100,13 +119,15 @@ fun DrunkWrappedHomeScreen(
             selectedMixer = null
             withIce = null
             priceInput = "0"
-            placeInput = ""
+            selectedPlaceName = ""
+            newPlaceInput = ""
             selectedRegisterDate = LocalDate.now().toString()
             vomitosCount = 0
             isRobbed = false
             lastSaved = null
             showSummaryDialog = false
             showRegisterConfirmationDialog = false
+            showPlacesManagerDialog = false
             viewModel.limpiarEstadoGuardado()
             onBackToMenu()
         }
@@ -219,6 +240,14 @@ fun DrunkWrappedHomeScreen(
                     text = "Formato recomendado: 2026-04-21",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                SectionTitle("Lugar del registro")
+                PlaceSelector(
+                    places = placesState.places,
+                    selectedPlaceName = selectedPlaceName,
+                    onPlaceSelected = { selectedPlaceName = it },
+                    onManagePlaces = { showPlacesManagerDialog = true }
                 )
             }
 
@@ -393,7 +422,7 @@ fun DrunkWrappedHomeScreen(
                 draftedDrinks.forEachIndexed { index, draft ->
                     DraftSummaryCard(
                         draft = draft,
-                        canAdjustHidalgo = isCubataFormat(draft.formato),
+                        canAdjustHidalgo = isHidalgoEligibleFormat(draft.formato),
                         onIncreaseHidalgo = {
                             draftedDrinks = draftedDrinks.mapIndexed { mapIndex, item ->
                                 if (mapIndex != index) item
@@ -414,7 +443,7 @@ fun DrunkWrappedHomeScreen(
 
                 SectionTitle("Trucos especiales de la noche")
                 Text(
-                    text = "Cubatas Hidalgo totales: ${draftedDrinks.sumOf { it.hidalgoCount }}",
+                    text = "Hidalgos totales: ${draftedDrinks.sumOf { it.hidalgoCount }}",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -444,15 +473,6 @@ fun DrunkWrappedHomeScreen(
                     )
                 }
 
-                OutlinedTextField(
-                    value = placeInput,
-                    onValueChange = { placeInput = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Lugar donde has bebido") },
-                    placeholder = { Text("Bar, casa de un colega, discoteca, terraza...") },
-                    singleLine = true
-                )
-
                 Button(
                     onClick = { showSummaryDialog = true },
                     modifier = Modifier
@@ -477,13 +497,13 @@ fun DrunkWrappedHomeScreen(
                         } else {
                             viewModel.guardarRegistro(
                                 draftedDrinks,
-                                placeInput,
+                                selectedPlaceName,
                                 vomitosCount,
                                 selectedRegisterDate
                             )
                         }
                     },
-                    enabled = !saveState.isSaving && placeInput.trim().isNotEmpty() && isValidDateInput(selectedRegisterDate),
+                    enabled = !saveState.isSaving && selectedPlaceName.trim().isNotEmpty() && isValidDateInput(selectedRegisterDate),
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 68.dp),
@@ -509,7 +529,7 @@ fun DrunkWrappedHomeScreen(
                                 showRegisterConfirmationDialog = false
                                 viewModel.guardarRegistro(
                                     draftedDrinks,
-                                    placeInput,
+                                    selectedPlaceName,
                                     vomitosCount,
                                     selectedRegisterDate
                                 )
@@ -563,15 +583,37 @@ fun DrunkWrappedHomeScreen(
             if (showSummaryDialog) {
                 SummaryDialog(
                     draftedDrinks = draftedDrinks,
-                    lugarNombre = placeInput,
+                    lugarNombre = selectedPlaceName,
                     fechaRegistro = selectedRegisterDate,
                     vomitosTotal = vomitosCount,
-                    canConfirm = placeInput.trim().isNotEmpty() && isValidDateInput(selectedRegisterDate),
+                    canConfirm = selectedPlaceName.trim().isNotEmpty() && isValidDateInput(selectedRegisterDate),
                     onDismiss = { showSummaryDialog = false },
                     onConfirm = {
-                        viewModel.guardarRegistro(draftedDrinks, placeInput, vomitosCount, selectedRegisterDate)
+                        viewModel.guardarRegistro(draftedDrinks, selectedPlaceName, vomitosCount, selectedRegisterDate)
                         showSummaryDialog = false
                     }
+                )
+            }
+
+            if (showPlacesManagerDialog) {
+                PlacesManagerDialog(
+                    placesState = placesState,
+                    newPlaceInput = newPlaceInput,
+                    onNewPlaceInputChange = { newPlaceInput = it },
+                    onAddPlace = { placeName ->
+                        viewModel.addPlace(placeName) { canonicalName ->
+                            selectedPlaceName = canonicalName
+                            newPlaceInput = ""
+                        }
+                    },
+                    onDeletePlace = { place ->
+                        viewModel.deletePlace(place.id) {
+                            if (selectedPlaceName == place.nombre) {
+                                selectedPlaceName = placesState.places.firstOrNull { it.id != place.id }?.nombre.orEmpty()
+                            }
+                        }
+                    },
+                    onDismiss = { showPlacesManagerDialog = false }
                 )
             }
         }
@@ -693,7 +735,7 @@ private fun SummaryDialog(
                             if (draft.conHielo) {
                                 append(" | Hielo")
                             }
-                            if (isCubataFormat(draft.formato)) {
+                            if (isHidalgoEligibleFormat(draft.formato)) {
                                 append(" | Hidalgo: ")
                                 append(draft.hidalgoCount)
                             }
@@ -819,8 +861,191 @@ private fun DraftSummaryCard(
     }
 }
 
-private fun isCubataFormat(formato: String): Boolean {
-    return formato.equals("Copa", ignoreCase = true) || formato.equals("Garrafa", ignoreCase = true)
+private fun isHidalgoEligibleFormat(formato: String): Boolean {
+    return formato.equals("Copa", ignoreCase = true) ||
+        formato.equals("Garrafa", ignoreCase = true) ||
+        formato.equals("Cerveza", ignoreCase = true)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlaceSelector(
+    places: List<com.danieleivan.tajatracker.data.model.LugarRow>,
+    selectedPlaceName: String,
+    onPlaceSelected: (String) -> Unit,
+    onManagePlaces: () -> Unit
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selectedPlaceName.ifBlank { "" },
+                onValueChange = {},
+                readOnly = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(),
+                label = { Text("Lugar") },
+                placeholder = { Text("Selecciona un lugar") },
+                singleLine = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+            )
+
+            androidx.compose.material3.DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                if (places.isEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text("No hay lugares guardados") },
+                        onClick = {
+                            expanded = false
+                            onManagePlaces()
+                        }
+                    )
+                } else {
+                    places.forEach { place ->
+                        DropdownMenuItem(
+                            text = { Text(place.nombre) },
+                            onClick = {
+                                expanded = false
+                                onPlaceSelected(place.nombre)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        TextButton(onClick = onManagePlaces) {
+            Text("Añadir o eliminar lugares")
+        }
+    }
+}
+
+@Composable
+private fun PlacesManagerDialog(
+    placesState: PlacesUiState,
+    newPlaceInput: String,
+    onNewPlaceInputChange: (String) -> Unit,
+    onAddPlace: (String) -> Unit,
+    onDeletePlace: (com.danieleivan.tajatracker.data.model.LugarRow) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text("CERRAR")
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Text(
+                text = "Gestionar lugares",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Usa nombres canónicos para evitar duplicados como 'El comedia' y 'Sala la comedia'.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = newPlaceInput,
+                    onValueChange = onNewPlaceInputChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Nuevo lugar") },
+                    placeholder = { Text("Ej. El Comedia") },
+                    singleLine = true
+                )
+
+                Button(
+                    onClick = { onAddPlace(newPlaceInput) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = newPlaceInput.trim().isNotBlank() && !placesState.isLoading,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text("AÑADIR LUGAR")
+                }
+
+                if (placesState.errorMessage != null) {
+                    Text(
+                        text = placesState.errorMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                if (placesState.infoMessage != null) {
+                    Text(
+                        text = placesState.infoMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+
+                if (placesState.places.isEmpty()) {
+                    Text(
+                        text = "Todavia no hay lugares guardados.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier.heightIn(max = 260.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        placesState.places.forEach { place ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = androidx.compose.material3.CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = place.nombre,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    TextButton(onClick = { onDeletePlace(place) }) {
+                                        Text("Eliminar")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
 }
 
 @Composable

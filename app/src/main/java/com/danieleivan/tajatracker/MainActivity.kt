@@ -95,6 +95,7 @@ class MainActivity : ComponentActivity() {
                     AppScreen.RECORD -> DrunkWrappedHomeScreen(
                         viewModel = homeViewModel,
                         confirmBeforeRegister = confirmBeforeRegister,
+                        onRegistroGuardado = { statsViewModel.cargarEstadisticas() },
                         onBackToMenu = { currentScreen = AppScreen.MENU },
                         onOpenStats = { currentScreen = AppScreen.STATS }
                     )
